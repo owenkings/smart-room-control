@@ -1,0 +1,11 @@
+# 统一换行符：仓库存 LF，Windows checkout 时自动转 CRLF
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary

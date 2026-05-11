@@ -1,0 +1,48 @@
+# Python 环境
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# 运行时生成的文件
+logs/
+ir_codes.json
+user_settings.json
+*.log
+*.csv
+servo_calibration.json
+
+# YOLO 模型文件（体积大，首次运行自动下载）
+*.pt
+*.onnx
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时测试脚本（树莓派调试用，不入库）
+test_gpio_info.py
+test_gpio_info2.py
+test_light_sensor.py
+test_light_sensor2.py
+test_light_sensor3.py
+hardware_check.py
+
+# 接线图大图（文件较大，不入库；保留图标）
+assets/wiring_*.png
+assets/breadboard_*.png
+assets/debug_*.png
+assets/*_thumb.jpeg
+# 保留: assets/app_icon.ico, assets/app_icon.png
