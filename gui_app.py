@@ -2,12 +2,8 @@
 """
 智能教室测控系统 - 本地 GUI 版本（PyQt6）
 
-修复清单:
-  1. PersonDetector.person_count AttributeError — __init__ 缺少初始化
-  2. 中文乱码 — 显式设置 UTF-8 + 微软雅黑字体
-  3. 布局不均 — 改用 QSplitter 自适应分割
-  4. 模型切换 — 下拉框存储 (显示名, 文件名) 分离，currentIndex 取文件名
-  5. 窗口图标 — 加载 assets/app_icon.ico
+亮色主题，QSplitter 自适应布局，CJK 字体支持。
+通过 DecisionEngine 统一控制所有硬件模块。
 
 运行: python gui_app.py
 依赖: pip install PyQt6
@@ -18,27 +14,24 @@ import sys
 import os
 import io
 
-# Windows 下强制 stdout/stderr 使用 UTF-8
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 import time
-import queue as _queue
 import signal
 import logging
 import numpy as np
-
-import user_settings  # 用户配置持久化
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox,
     QComboBox, QSlider, QTextEdit, QSizePolicy,
     QSplitter, QStatusBar, QScrollArea, QFrame, QLineEdit,
+    QCheckBox, QSpinBox, QDoubleSpinBox, QProgressBar,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QImage, QPixmap, QFont, QColor, QIcon, QFontDatabase
+from PyQt6.QtGui import QImage, QPixmap, QFont, QIcon, QFontDatabase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,82 +40,89 @@ logging.basicConfig(
 )
 logger = logging.getLogger("gui")
 
-# ── 颜色常量 ─────────────────────────────────────────────────────────
-DARK_BG  = "#1a1a2e"
-CARD_BG  = "#16213e"
-BORDER   = "#0f3460"
-GREEN    = "#4ecca3"
-RED      = "#e94560"
-AMBER    = "#f0a500"
-BLUE     = "#4a9eff"
-TEXT     = "#eeeeee"
-DIM      = "#888888"
 
-# ── 全局样式表 ────────────────────────────────────────────────────────
+# ── 亮色主题颜色常量 ─────────────────────────────────────────────────
+BG_WHITE = "#ffffff"
+BG_LIGHT = "#f5f7fa"
+CARD_BG = "#ffffff"
+BORDER = "#e0e4e8"
+ACCENT = "#2979ff"
+ACCENT_HOVER = "#1565c0"
+GREEN = "#43a047"
+RED = "#e53935"
+AMBER = "#f9a825"
+TEXT_DARK = "#212121"
+TEXT_DIM = "#757575"
+
+# ── 亮色 QSS 样式表 ──────────────────────────────────────────────────
 STYLE = f"""
 * {{
-    font-family: "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei",
-                 "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC",
-                 "Segoe UI", sans-serif;
     font-size: 12px;
-    color: {TEXT};
+    color: {TEXT_DARK};
 }}
 QMainWindow, QWidget, QScrollArea, QScrollArea > QWidget > QWidget {{
-    background-color: {DARK_BG};
+    background-color: {BG_LIGHT};
 }}
 QGroupBox {{
     background-color: {CARD_BG};
     border: 1px solid {BORDER};
-    border-radius: 8px;
-    margin-top: 10px;
-    padding: 10px 8px 8px 8px;
+    border-radius: 10px;
+    margin-top: 12px;
+    padding: 12px 10px 10px 10px;
     font-weight: bold;
-    color: {RED};
+    font-size: 13px;
+    color: {ACCENT};
 }}
 QGroupBox::title {{
     subcontrol-origin: margin;
     subcontrol-position: top left;
     left: 12px;
-    padding: 0 6px;
+    padding: 2px 8px;
     background-color: {CARD_BG};
+    border-radius: 4px;
 }}
 QPushButton {{
-    background-color: {BORDER};
-    color: {TEXT};
-    border: 1px solid #1a4080;
+    background-color: {BG_LIGHT};
+    color: {TEXT_DARK};
+    border: 1px solid {BORDER};
     border-radius: 6px;
     padding: 4px 10px;
     min-height: 24px;
 }}
-QPushButton:hover  {{ background-color: #1e4d99; border-color: {BLUE}; }}
-QPushButton:pressed {{ background-color: {GREEN}; color: {DARK_BG}; }}
+QPushButton:hover {{ background-color: #e3f2fd; border-color: {ACCENT}; }}
+QPushButton:pressed {{ background-color: {ACCENT}; color: white; }}
 QPushButton[role="on"] {{
-    background-color: {GREEN}; color: {DARK_BG}; font-weight: bold;
+    background-color: {GREEN}; color: white; font-weight: bold;
     border-color: {GREEN};
 }}
-QPushButton[role="on"]:hover {{ background-color: #3ab88a; }}
+QPushButton[role="on"]:hover {{ background-color: #388e3c; }}
 QPushButton[role="off"] {{
     background-color: {RED}; color: white; font-weight: bold;
     border-color: {RED};
 }}
-QPushButton[role="off"]:hover {{ background-color: #c73550; }}
+QPushButton[role="off"]:hover {{ background-color: #c62828; }}
+QPushButton[role="accent"] {{
+    background-color: {ACCENT}; color: white; font-weight: bold;
+    border-color: {ACCENT};
+}}
+QPushButton[role="accent"]:hover {{ background-color: {ACCENT_HOVER}; }}
 QPushButton[role="mode_active"] {{
-    background-color: {GREEN}; color: {DARK_BG}; font-weight: bold;
+    background-color: {ACCENT}; color: white; font-weight: bold;
 }}
 QPushButton[role="mode_manual_active"] {{
-    background-color: {AMBER}; color: {DARK_BG}; font-weight: bold;
+    background-color: {AMBER}; color: {TEXT_DARK}; font-weight: bold;
 }}
 QSlider::groove:horizontal {{
     height: 4px; background: {BORDER}; border-radius: 2px;
 }}
 QSlider::handle:horizontal {{
-    background: {GREEN}; width: 14px; height: 14px;
+    background: {ACCENT}; width: 14px; height: 14px;
     margin: -5px 0; border-radius: 7px;
 }}
-QSlider::sub-page:horizontal {{ background: {GREEN}; border-radius: 2px; }}
+QSlider::sub-page:horizontal {{ background: {ACCENT}; border-radius: 2px; }}
 QTextEdit {{
-    background-color: {DARK_BG};
-    color: {DIM};
+    background-color: {BG_WHITE};
+    color: {TEXT_DIM};
     border: 1px solid {BORDER};
     border-radius: 6px;
     font-family: "Consolas", "Courier New", monospace;
@@ -130,37 +130,107 @@ QTextEdit {{
     padding: 4px;
 }}
 QComboBox {{
-    background-color: {BORDER};
-    color: {TEXT};
-    border: 1px solid #1a4080;
+    background-color: {BG_WHITE};
+    color: {TEXT_DARK};
+    border: 1px solid {BORDER};
     border-radius: 6px;
     padding: 4px 8px;
     min-height: 24px;
 }}
-QComboBox:hover {{ border-color: {BLUE}; }}
+QComboBox:hover {{ border-color: {ACCENT}; }}
 QComboBox QAbstractItemView {{
-    background-color: {CARD_BG};
-    color: {TEXT};
+    background-color: {BG_WHITE};
+    color: {TEXT_DARK};
     border: 1px solid {BORDER};
-    selection-background-color: {BORDER};
+    selection-background-color: #e3f2fd;
 }}
 QComboBox::drop-down {{ border: none; width: 20px; }}
 QScrollBar:vertical {{
-    background: {DARK_BG}; width: 6px; border-radius: 3px;
+    background: {BG_LIGHT}; width: 6px; border-radius: 3px;
 }}
 QScrollBar::handle:vertical {{
     background: {BORDER}; border-radius: 3px; min-height: 20px;
 }}
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
 QStatusBar {{
-    background-color: {CARD_BG};
-    color: {DIM};
+    background-color: {BG_WHITE};
+    color: {TEXT_DIM};
     font-size: 11px;
     border-top: 1px solid {BORDER};
 }}
 QSplitter::handle {{ background-color: {BORDER}; }}
 QSplitter::handle:horizontal {{ width: 2px; }}
 QSplitter::handle:vertical {{ height: 2px; }}
+QLineEdit {{
+    background-color: {BG_WHITE};
+    color: {TEXT_DARK};
+    border: 1px solid {BORDER};
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-height: 24px;
+}}
+QLineEdit:focus {{ border-color: {ACCENT}; }}
+QLabel {{
+    border-radius: 4px;
+    padding: 1px 2px;
+}}
+QSpinBox, QDoubleSpinBox {{
+    background-color: {BG_WHITE};
+    color: {TEXT_DARK};
+    border: 1px solid {BORDER};
+    border-radius: 6px;
+    padding: 3px 6px;
+    min-height: 22px;
+}}
+QSpinBox:focus, QDoubleSpinBox:focus {{ border-color: {ACCENT}; }}
+QSpinBox::up-button, QDoubleSpinBox::up-button {{
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 16px;
+    border-left: 1px solid {BORDER};
+    border-top-right-radius: 5px;
+    background: {BG_LIGHT};
+}}
+QSpinBox::down-button, QDoubleSpinBox::down-button {{
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 16px;
+    border-left: 1px solid {BORDER};
+    border-bottom-right-radius: 5px;
+    background: {BG_LIGHT};
+}}
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{
+    width: 7px; height: 7px;
+}}
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
+    width: 7px; height: 7px;
+}}
+QCheckBox {{
+    spacing: 6px;
+    padding: 2px 4px;
+    border-radius: 4px;
+}}
+QCheckBox::indicator {{
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1px solid {BORDER};
+}}
+QCheckBox::indicator:checked {{
+    background-color: {ACCENT};
+    border-color: {ACCENT};
+}}
+QProgressBar {{
+    background-color: {BG_LIGHT};
+    border: 1px solid {BORDER};
+    border-radius: 4px;
+    height: 14px;
+    text-align: center;
+    font-size: 10px;
+}}
+QProgressBar::chunk {{
+    background-color: {ACCENT};
+    border-radius: 3px;
+}}
 """
 
 
@@ -168,25 +238,24 @@ QSplitter::handle:vertical {{ height: 2px; }}
 #  模型列表（显示名 → 文件名，分离存储）
 # ══════════════════════════════════════════════════════════════════════
 MODEL_ENTRIES = [
-    # (显示文本,  文件名,  是否为分组标题)
-    ("-- YOLOv8  经典稳定 ----------------", "",           True),
-    ("v8n   Nano    3.2M   最快 速度优先",       "yolov8n.pt", False),
-    ("v8s   Small  11.2M   快   均衡",         "yolov8s.pt", False),
-    ("v8m   Medium 25.9M   均衡",              "yolov8m.pt", False),
-    ("v8l   Large  43.7M   精准",              "yolov8l.pt", False),
-    ("v8x   XLarge 68.2M   最精准 精度优先",     "yolov8x.pt", False),
-    ("-- YOLO11  精度更高 ----------------", "",           True),
-    ("v11n  Nano    2.6M   最快",              "yolo11n.pt", False),
-    ("v11s  Small   9.4M   快",               "yolo11s.pt", False),
-    ("v11m  Medium 20.1M   均衡",             "yolo11m.pt", False),
-    ("v11l  Large  25.3M   精准",             "yolo11l.pt", False),
-    ("v11x  XLarge 56.9M   最精准",           "yolo11x.pt", False),
-    ("-- YOLO26  最新一代 ----------------", "",           True),
-    ("v26n  Nano    2.4M   最快",              "yolo26n.pt", False),
-    ("v26s  Small   9.5M   快",               "yolo26s.pt", False),
-    ("v26m  Medium 20.4M   均衡",             "yolo26m.pt", False),
-    ("v26l  Large  24.8M   精准",             "yolo26l.pt", False),
-    ("v26x  XLarge 55.7M   最精准",           "yolo26x.pt", False),
+    ("-- YOLOv8  经典稳定 ----------------", "", True),
+    ("v8n   Nano    3.2M   最快 速度优先", "yolov8n.pt", False),
+    ("v8s   Small  11.2M   快   均衡", "yolov8s.pt", False),
+    ("v8m   Medium 25.9M   均衡", "yolov8m.pt", False),
+    ("v8l   Large  43.7M   精准", "yolov8l.pt", False),
+    ("v8x   XLarge 68.2M   最精准 精度优先", "yolov8x.pt", False),
+    ("-- YOLO11  精度更高 ----------------", "", True),
+    ("v11n  Nano    2.6M   最快", "yolo11n.pt", False),
+    ("v11s  Small   9.4M   快", "yolo11s.pt", False),
+    ("v11m  Medium 20.1M   均衡", "yolo11m.pt", False),
+    ("v11l  Large  25.3M   精准", "yolo11l.pt", False),
+    ("v11x  XLarge 56.9M   最精准", "yolo11x.pt", False),
+    ("-- YOLO26  最新一代 ----------------", "", True),
+    ("v26n  Nano    2.4M   最快", "yolo26n.pt", False),
+    ("v26s  Small   9.5M   快", "yolo26s.pt", False),
+    ("v26m  Medium 20.4M   均衡", "yolo26m.pt", False),
+    ("v26l  Large  24.8M   精准", "yolo26l.pt", False),
+    ("v26x  XLarge 55.7M   最精准", "yolo26x.pt", False),
 ]
 
 
@@ -195,7 +264,7 @@ MODEL_ENTRIES = [
 # ══════════════════════════════════════════════════════════════════════
 
 class CaptureThread(QThread):
-    """全速读取最新帧，通过信号发给主线程渲染，不阻塞 UI"""
+    """全速读取最新帧，通过信号发给主线程渲染"""
     frame_ready = pyqtSignal(np.ndarray)
 
     def __init__(self, detector):
@@ -204,11 +273,9 @@ class CaptureThread(QThread):
         self._running = True
 
     def run(self):
-        interval = 1.0 / 30   # 目标 30fps
-        logger.info("GUI 采集线程已启动")
+        interval = 1.0 / 30
         while self._running:
             t0 = time.perf_counter()
-            # 永远取最新原始帧 + 叠加检测框，不受推理延迟影响
             frame = self.detector.get_latest_frame()
             if frame is not None:
                 self.frame_ready.emit(frame)
@@ -232,7 +299,7 @@ class StatusThread(QThread):
     def run(self):
         while self._running:
             try:
-                self.status_ready.emit(self.engine.get_full_status())
+                self.status_ready.emit(self.engine.get_state())
             except Exception as e:
                 logger.debug(f"状态获取失败: {e}")
             self.msleep(1000)
@@ -246,16 +313,56 @@ class StatusThread(QThread):
 #  辅助函数
 # ══════════════════════════════════════════════════════════════════════
 
-def _lbl(text, color=TEXT, bold=False, size=13, mono=False):
+
+class _QtLogHandler(logging.Handler):
+    """将 logging 输出路由到 QTextEdit 的自定义 Handler。
+
+    使用信号机制确保线程安全（后台线程的日志也能正确显示）。
+    """
+
+    def __init__(self, text_widget: QTextEdit):
+        super().__init__()
+        self._widget = text_widget
+        # 限制最大行数，防止内存无限增长
+        self._max_lines = 200
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            # 使用 QTimer.singleShot 确保在主线程中更新 UI
+            QTimer.singleShot(0, lambda: self._append(msg))
+        except Exception:
+            self.handleError(record)
+
+    def _append(self, msg: str):
+        """在主线程中追加日志文本"""
+        self._widget.append(msg)
+        # 自动滚动到底部
+        scrollbar = self._widget.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+        # 限制行数
+        doc = self._widget.document()
+        if doc.blockCount() > self._max_lines:
+            cursor = self._widget.textCursor()
+            cursor.movePosition(cursor.MoveOperation.Start)
+            cursor.movePosition(
+                cursor.MoveOperation.Down, cursor.MoveMode.KeepAnchor,
+                doc.blockCount() - self._max_lines
+            )
+            cursor.removeSelectedText()
+            cursor.deleteChar()  # 删除多余换行
+
+def _lbl(text, color=TEXT_DARK, bold=False, size=13, mono=False):
     """快速创建样式化 QLabel"""
     w = QLabel(text)
     w.setStyleSheet(
         f"color:{color};"
         f"font-size:{size}px;"
+        f"border-radius:4px;"
+        f"padding:2px 4px;"
         f"{'font-weight:bold;' if bold else ''}"
         f"{'font-family:Consolas,monospace;' if mono else ''}"
     )
-    w.setWordWrap(True)
     return w
 
 
@@ -283,10 +390,13 @@ def _btn(text, role="normal", width=None):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, engine, detector):
+    def __init__(self, engine):
+        """
+        Args:
+            engine: src.decision_engine.DecisionEngine 实例
+        """
         super().__init__()
-        self.engine   = engine
-        self.detector = detector
+        self.engine = engine
 
         self.setWindowTitle("智能教室测控系统")
         screen = QApplication.primaryScreen()
@@ -306,7 +416,8 @@ class MainWindow(QMainWindow):
             self.setWindowIcon(QIcon(icon_path))
 
         self._build_ui()
-        self._apply_saved_settings()   # 恢复上次配置
+        self._apply_saved_settings()
+        self._setup_log_handler()
         self._start_threads()
 
     # ── 布局构建 ──────────────────────────────────────────────────────
@@ -318,26 +429,24 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(0)
 
-        # 主分割器：大屏左右分栏，小屏上下分栏，避免树莓派小屏挤压乱排。
         orientation = Qt.Orientation.Vertical if self.compact_ui else Qt.Orientation.Horizontal
         splitter = QSplitter(orientation)
         splitter.setHandleWidth(4)
 
-        # ── 左侧 ──
+        # ── 左侧：视频 + 日志 ──
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0 if self.compact_ui else 4, 0)
         left_layout.setSpacing(8)
 
-        # 视频+日志 垂直分割
         v_splitter = QSplitter(Qt.Orientation.Vertical)
         v_splitter.addWidget(self._build_video_card())
         v_splitter.addWidget(self._build_log_card())
-        v_splitter.setStretchFactor(0, 4)
+        v_splitter.setStretchFactor(0, 7)
         v_splitter.setStretchFactor(1, 1)
         left_layout.addWidget(v_splitter)
 
-        # ── 右侧（可滚动的控制面板）──
+        # ── 右侧：控制面板（可滚动）──
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -345,11 +454,19 @@ class MainWindow(QMainWindow):
 
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(0 if self.compact_ui else 4, 4 if self.compact_ui else 0, 0, 0)
+        right_layout.setContentsMargins(
+            0 if self.compact_ui else 4, 4 if self.compact_ui else 0, 0, 0)
         right_layout.setSpacing(8)
         right_layout.addWidget(self._build_detection_card())
         right_layout.addWidget(self._build_env_card())
-        right_layout.addWidget(self._build_device_card())
+        right_layout.addWidget(self._build_servo_card())
+        right_layout.addWidget(self._build_servo_calibration_card())
+        right_layout.addWidget(self._build_light_threshold_card())
+        right_layout.addWidget(self._build_conditions_card())
+        right_layout.addWidget(self._build_time_fallback_card())
+        right_layout.addWidget(self._build_temperature_card())
+        right_layout.addWidget(self._build_ir_card())
+        right_layout.addWidget(self._build_ir_wizard_card())
         right_layout.addWidget(self._build_model_card())
         right_layout.addStretch()
         scroll.setWidget(right_widget)
@@ -371,33 +488,45 @@ class MainWindow(QMainWindow):
         sb = QStatusBar()
         self.setStatusBar(sb)
         self.lbl_status = QLabel("系统初始化中…")
-        self.lbl_status.setStyleSheet(f"color:{DIM};font-size:11px;")
+        self.lbl_status.setStyleSheet(f"color:{TEXT_DIM};font-size:11px;")
         sb.addWidget(self.lbl_status)
+
+    # ── 日志处理器 ────────────────────────────────────────────────────
+
+    def _setup_log_handler(self):
+        """将 Python logging 输出路由到 GUI 的操作日志面板"""
+        handler = _QtLogHandler(self.log_text)
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+            datefmt="%H:%M:%S",
+        ))
+        handler.setLevel(logging.INFO)
+        # 添加到根 logger
+        logging.getLogger().addHandler(handler)
 
     # ── 视频卡片 ──────────────────────────────────────────────────────
 
     def _build_video_card(self):
-        box = QGroupBox("实时监控画面")
+        box = QGroupBox("📹 实时监控画面")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(6, 14, 6, 6)
         layout.setSpacing(6)
 
         self.video_label = QLabel()
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # Ignored 防止每帧撑大 label 触发布局重算（流畅度关键）
         self.video_label.setSizePolicy(
             QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.video_label.setStyleSheet(
-            f"background:{DARK_BG};border-radius:6px;border:1px solid {BORDER};")
+            f"background:{BG_LIGHT};border-radius:6px;border:1px solid {BORDER};")
         self.video_label.setMinimumHeight(320)
         layout.addWidget(self.video_label, stretch=1)
 
         # 性能行
         perf = QHBoxLayout()
         perf.setSpacing(16)
-        self.lbl_fps     = _lbl("采集: — fps", DIM, size=11, mono=True)
-        self.lbl_infer   = _lbl("推理: — ms",  DIM, size=11, mono=True)
-        self.lbl_backend = _lbl("后端: —",      DIM, size=11)
+        self.lbl_fps = _lbl("采集: — fps", TEXT_DIM, size=11, mono=True)
+        self.lbl_infer = _lbl("推理: — ms", TEXT_DIM, size=11, mono=True)
+        self.lbl_backend = _lbl("后端: —", TEXT_DIM, size=11)
         for w in (self.lbl_fps, self.lbl_infer, self.lbl_backend):
             perf.addWidget(w)
         perf.addStretch()
@@ -407,7 +536,7 @@ class MainWindow(QMainWindow):
     # ── 日志卡片 ──────────────────────────────────────────────────────
 
     def _build_log_card(self):
-        box = QGroupBox("操作日志")
+        box = QGroupBox("📋 操作日志")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(6, 14, 6, 6)
         self.log_text = QTextEdit()
@@ -418,7 +547,7 @@ class MainWindow(QMainWindow):
     # ── 人员检测卡片 ──────────────────────────────────────────────────
 
     def _build_detection_card(self):
-        box = QGroupBox("人员检测")
+        box = QGroupBox("👤 人员检测")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(10, 16, 10, 10)
         layout.setSpacing(8)
@@ -427,52 +556,23 @@ class MainWindow(QMainWindow):
         self.lbl_count = QLabel("0")
         self.lbl_count.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_count.setFont(QFont("Consolas", 42, QFont.Weight.Bold))
-        self.lbl_count.setStyleSheet(f"color:{RED};")
+        self.lbl_count.setStyleSheet(f"color:{ACCENT};")
         layout.addWidget(self.lbl_count)
 
         # 状态行
         row1 = QHBoxLayout()
-        row1.addWidget(_lbl("原始检测:", DIM))
-        self.lbl_raw = _lbl("—", TEXT, bold=True)
-        row1.addWidget(self.lbl_raw)
+        row1.addWidget(_lbl("在场状态:", TEXT_DIM))
+        self.lbl_presence = _lbl("—", TEXT_DARK, bold=True)
+        row1.addWidget(self.lbl_presence)
         row1.addStretch()
-        row1.addWidget(_lbl("稳定状态:", DIM))
-        self.lbl_stable = _lbl("—", TEXT, bold=True)
-        row1.addWidget(self.lbl_stable)
         layout.addLayout(row1)
-
-        layout.addWidget(_sep())
-
-        # 检测间隔
-        row2 = QHBoxLayout()
-        row2.addWidget(_lbl("检测间隔:", DIM))
-        self.lbl_interval = _lbl("2.0 s", GREEN, bold=True, mono=True)
-        row2.addWidget(self.lbl_interval)
-        row2.addStretch()
-        layout.addLayout(row2)
-
-        self.slider_interval = QSlider(Qt.Orientation.Horizontal)
-        self.slider_interval.setRange(5, 200)   # 0.5s ~ 20s，步长0.1s
-        self.slider_interval.setValue(20)
-        self.slider_interval.valueChanged.connect(
-            lambda v: self.lbl_interval.setText(f"{v/10:.1f} s"))
-        self.slider_interval.sliderReleased.connect(self._on_interval_released)
-        layout.addWidget(self.slider_interval)
-
-        hint = _lbl("建议间隔 = 推理耗时 × 1.5", DIM, size=10)
-        self.lbl_suggest = _lbl("", AMBER, size=10, mono=True)
-        row3 = QHBoxLayout()
-        row3.addWidget(hint)
-        row3.addWidget(self.lbl_suggest)
-        row3.addStretch()
-        layout.addLayout(row3)
 
         layout.addWidget(_sep())
 
         # 模式切换
         mode_row = QHBoxLayout()
         mode_row.setSpacing(6)
-        self.btn_auto   = QPushButton("自动模式")
+        self.btn_auto = QPushButton("自动模式")
         self.btn_manual = QPushButton("手动模式")
         self.btn_auto.clicked.connect(lambda: self._set_mode("AUTO"))
         self.btn_manual.clicked.connect(lambda: self._set_mode("MANUAL"))
@@ -485,194 +585,465 @@ class MainWindow(QMainWindow):
     # ── 环境传感器卡片 ────────────────────────────────────────────────
 
     def _build_env_card(self):
-        box = QGroupBox("环境传感器")
+        box = QGroupBox("🌡️ 环境传感器")
         grid = QGridLayout(box)
         grid.setContentsMargins(10, 16, 10, 10)
         grid.setSpacing(8)
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(3, 1)
 
-        grid.addWidget(_lbl("温度:", DIM), 0, 0)
-        self.lbl_temp = _lbl("—°C", TEXT, bold=True, mono=True)
+        grid.addWidget(_lbl("温度:", TEXT_DIM), 0, 0)
+        self.lbl_temp = _lbl("—°C", TEXT_DARK, bold=True, mono=True)
         grid.addWidget(self.lbl_temp, 0, 1)
 
-        grid.addWidget(_lbl("湿度:", DIM), 0, 2)
-        self.lbl_humi = _lbl("—%", TEXT, bold=True, mono=True)
+        grid.addWidget(_lbl("湿度:", TEXT_DIM), 0, 2)
+        self.lbl_humi = _lbl("—%", TEXT_DARK, bold=True, mono=True)
         grid.addWidget(self.lbl_humi, 0, 3)
 
-        grid.addWidget(_lbl("光照:", DIM), 1, 0)
-        self.lbl_lux = _lbl("— lux", TEXT, bold=True, mono=True)
+        grid.addWidget(_lbl("光照:", TEXT_DIM), 1, 0)
+        self.lbl_lux = _lbl("— lux", TEXT_DARK, bold=True, mono=True)
         grid.addWidget(self.lbl_lux, 1, 1)
 
-        grid.addWidget(_lbl("空调模式:", DIM), 1, 2)
-        self.lbl_ac_mode = _lbl("—", TEXT, bold=True)
-        grid.addWidget(self.lbl_ac_mode, 1, 3)
+        grid.addWidget(_lbl("灯光:", TEXT_DIM), 1, 2)
+        self.lbl_light = _lbl("关闭", RED, bold=True)
+        grid.addWidget(self.lbl_light, 1, 3)
 
         return box
 
-    # ── 设备控制卡片 ──────────────────────────────────────────────────
 
-    def _build_device_card(self):
-        box = QGroupBox("设备控制")
+    # ── 舵机校准卡片 ──────────────────────────────────────────────────
+
+    def _build_servo_card(self):
+        box = QGroupBox("⚙️ 舵机控制")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(10, 16, 10, 10)
         layout.setSpacing(8)
 
-        # 灯光
+        # 灯光控制按钮
         row_light = QHBoxLayout()
-        row_light.addWidget(_lbl("灯光 (舵机):", DIM))
-        self.lbl_light = _lbl("关闭", RED, bold=True)
-        row_light.addWidget(self.lbl_light)
-        row_light.addStretch()
-        b_on  = _btn("开灯", "on",  60)
+        row_light.addWidget(_lbl("灯光控制:", TEXT_DIM))
+        b_on = _btn("开灯", "on", 60)
         b_off = _btn("关灯", "off", 60)
-        b_on.clicked.connect(lambda: self._control("light", True))
-        b_off.clicked.connect(lambda: self._control("light", False))
+        b_on.clicked.connect(lambda: self._servo_press("on"))
+        b_off.clicked.connect(lambda: self._servo_press("off"))
+        row_light.addStretch()
         row_light.addWidget(b_on)
         row_light.addWidget(b_off)
         layout.addLayout(row_light)
 
-        servo_box = QGroupBox("舵机标定 / 录制")
-        servo_layout = QVBoxLayout(servo_box)
-        servo_layout.setContentsMargins(8, 12, 8, 8)
-        servo_layout.setSpacing(6)
+        layout.addWidget(_sep())
 
-        row_servo_info = QHBoxLayout()
-        row_servo_info.addWidget(_lbl("当前角度:", DIM, size=11))
-        self.lbl_servo_angle = _lbl("90°", GREEN, bold=True, mono=True, size=11)
-        row_servo_info.addWidget(self.lbl_servo_angle)
-        row_servo_info.addStretch()
-        self.lbl_servo_saved = _lbl("开灯按压60° / 关灯按压120° / 中立回位90°", DIM, size=10, mono=True)
-        row_servo_info.addWidget(self.lbl_servo_saved)
-        servo_layout.addLayout(row_servo_info)
+        # 当前角度信息
+        row_info = QHBoxLayout()
+        row_info.addWidget(_lbl("当前角度:", TEXT_DIM, size=11))
+        self.lbl_servo_angle = _lbl("90°", ACCENT, bold=True, mono=True, size=11)
+        row_info.addWidget(self.lbl_servo_angle)
+        row_info.addStretch()
+        self.lbl_servo_saved = _lbl(
+            "开灯60° / 关灯120° / 中立90°", TEXT_DIM, size=10, mono=True)
+        self.lbl_servo_saved.setMinimumWidth(180)
+        row_info.addWidget(self.lbl_servo_saved)
+        layout.addLayout(row_info)
 
+        # 角度滑块
         self.slider_servo = QSlider(Qt.Orientation.Horizontal)
         self.slider_servo.setRange(0, 180)
         self.slider_servo.setValue(90)
         self.slider_servo.valueChanged.connect(
             lambda v: self.lbl_servo_angle.setText(f"{v}°"))
         self.slider_servo.sliderReleased.connect(self._servo_move_slider)
-        servo_layout.addWidget(self.slider_servo)
+        layout.addWidget(self.slider_servo)
 
-        row_servo_nudge = QHBoxLayout()
+        # 微调按钮 ±1° ±5°
+        row_nudge = QHBoxLayout()
         for text, delta in (("-5°", -5), ("-1°", -1), ("+1°", 1), ("+5°", 5)):
             btn = _btn(text, width=56)
             btn.clicked.connect(lambda _, d=delta: self._servo_nudge(d))
-            row_servo_nudge.addWidget(btn)
-        row_servo_nudge.addStretch()
+            row_nudge.addWidget(btn)
+        row_nudge.addStretch()
         btn_center = _btn("回中立", width=70)
         btn_center.clicked.connect(self._servo_move_neutral)
-        row_servo_nudge.addWidget(btn_center)
-        servo_layout.addLayout(row_servo_nudge)
+        row_nudge.addWidget(btn_center)
+        layout.addLayout(row_nudge)
 
-        row_servo_save = QHBoxLayout()
-        btn_save_on = _btn("记为开灯按压角", "on", 110)
-        btn_save_off = _btn("记为关灯按压角", "off", 110)
-        btn_save_neutral = _btn("记为中立回位角", width=118)
+        layout.addWidget(_sep())
+
+        # 保存预设按钮
+        row_save = QHBoxLayout()
+        btn_save_on = _btn("记为开灯角", "accent", 100)
+        btn_save_off = _btn("记为关灯角", "accent", 100)
+        btn_save_neutral = _btn("记为中立角", "accent", 100)
         btn_save_on.clicked.connect(lambda: self._servo_save_preset("on"))
         btn_save_off.clicked.connect(lambda: self._servo_save_preset("off"))
         btn_save_neutral.clicked.connect(lambda: self._servo_save_preset("neutral"))
-        row_servo_save.addWidget(btn_save_on)
-        row_servo_save.addWidget(btn_save_off)
-        row_servo_save.addWidget(btn_save_neutral)
-        servo_layout.addLayout(row_servo_save)
+        row_save.addWidget(btn_save_on)
+        row_save.addWidget(btn_save_off)
+        row_save.addWidget(btn_save_neutral)
+        layout.addLayout(row_save)
 
-        row_servo_duration = QHBoxLayout()
-        row_servo_duration.addWidget(_lbl("保持时长(s):", DIM, size=11))
+        # 保持时长
+        row_duration = QHBoxLayout()
+        row_duration.addWidget(_lbl("保持时长(s):", TEXT_DIM, size=11))
         self.edit_servo_duration = QLineEdit("0.5")
         self.edit_servo_duration.setFixedWidth(72)
-        self.edit_servo_duration.setStyleSheet(
-            f"background:{BORDER};color:{TEXT};border:1px solid #1a4080;"
-            f"border-radius:6px;padding:4px 8px;min-height:24px;")
-        row_servo_duration.addWidget(self.edit_servo_duration)
-        btn_save_duration = _btn("保存时长", width=78)
-        btn_save_duration.clicked.connect(self._servo_save_duration)
-        row_servo_duration.addWidget(btn_save_duration)
-        row_servo_duration.addStretch()
-        servo_layout.addLayout(row_servo_duration)
-
-        layout.addWidget(servo_box)
-        layout.addWidget(_sep())
-
-        # 电源
-        row_power = QHBoxLayout()
-        row_power.addWidget(_lbl("电源 (继电器):", DIM))
-        self.lbl_power = _lbl("关闭", RED, bold=True)
-        row_power.addWidget(self.lbl_power)
-        row_power.addStretch()
-        b_on2  = _btn("通电", "on",  60)
-        b_off2 = _btn("断电", "off", 60)
-        b_on2.clicked.connect(lambda: self._control("power", True))
-        b_off2.clicked.connect(lambda: self._control("power", False))
-        row_power.addWidget(b_on2)
-        row_power.addWidget(b_off2)
-        layout.addLayout(row_power)
-
-        layout.addWidget(_sep())
-
-        # 空调
-        row_ac = QHBoxLayout()
-        row_ac.addWidget(_lbl("空调 (红外):", DIM))
-        self.lbl_ac = _lbl("关闭", RED, bold=True)
-        row_ac.addWidget(self.lbl_ac)
-        row_ac.addStretch()
-        b_cool = _btn("制冷", "on",  52)
-        b_heat = _btn("制热", "on",  52)
-        b_aoff = _btn("关闭", "off", 52)
-        b_cool.clicked.connect(lambda: self._control_ac(True, "cooling"))
-        b_heat.clicked.connect(lambda: self._control_ac(True, "heating"))
-        b_aoff.clicked.connect(lambda: self._control_ac(False))
-        row_ac.addWidget(b_cool)
-        row_ac.addWidget(b_heat)
-        row_ac.addWidget(b_aoff)
-        layout.addLayout(row_ac)
+        row_duration.addWidget(self.edit_servo_duration)
+        btn_save_dur = _btn("保存", width=60)
+        btn_save_dur.clicked.connect(self._servo_save_duration)
+        row_duration.addWidget(btn_save_dur)
+        row_duration.addStretch()
+        layout.addLayout(row_duration)
 
         return box
 
-    # ── 模型切换卡片 ──────────────────────────────────────────────────
+        return box
 
-    def _build_model_card(self):
-        box = QGroupBox("模型切换")
+    # ── 舵机校准面板（偏移量模式）──────────────────────────────────────
+
+    def _build_servo_calibration_card(self):
+        """舵机校准面板：Neutral_Angle, ON_Offset, OFF_Offset 输入 + 测试按钮"""
+        box = QGroupBox("⚙️ 舵机偏移量校准")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(6)
+
+        # 加载当前校准值
+        calibration = self.engine.user_settings.get("servo_calibration", {})
+        neutral = calibration.get("neutral_angle", 90)
+        on_offset = calibration.get("on_offset", -30)
+        off_offset = calibration.get("off_offset", 30)
+
+        # Neutral Angle
+        row_neutral = QHBoxLayout()
+        row_neutral.addWidget(_lbl("中位:", TEXT_DIM, size=11))
+        self.spin_neutral = QSpinBox()
+        self.spin_neutral.setRange(0, 180)
+        self.spin_neutral.setValue(neutral)
+        self.spin_neutral.setSuffix("°")
+        self.spin_neutral.setFixedWidth(70)
+        row_neutral.addWidget(self.spin_neutral)
+        btn_test_neutral = _btn("测试", "accent", 50)
+        btn_test_neutral.clicked.connect(self._calibration_test_neutral)
+        row_neutral.addWidget(btn_test_neutral)
+        row_neutral.addWidget(_lbl("开灯偏移:", TEXT_DIM, size=11))
+        self.spin_on_offset = QSpinBox()
+        self.spin_on_offset.setRange(-90, 90)
+        self.spin_on_offset.setValue(on_offset)
+        self.spin_on_offset.setSuffix("°")
+        self.spin_on_offset.setFixedWidth(70)
+        row_neutral.addWidget(self.spin_on_offset)
+        btn_test_on = _btn("测试", "accent", 50)
+        btn_test_on.clicked.connect(self._calibration_test_on)
+        row_neutral.addWidget(btn_test_on)
+        row_neutral.addStretch()
+        layout.addLayout(row_neutral)
+
+        # OFF Offset + Save (same row)
+        row_off = QHBoxLayout()
+        row_off.addWidget(_lbl("关灯偏移:", TEXT_DIM, size=11))
+        self.spin_off_offset = QSpinBox()
+        self.spin_off_offset.setRange(-90, 90)
+        self.spin_off_offset.setValue(off_offset)
+        self.spin_off_offset.setSuffix("°")
+        self.spin_off_offset.setFixedWidth(70)
+        row_off.addWidget(self.spin_off_offset)
+        btn_test_off = _btn("测试", "accent", 50)
+        btn_test_off.clicked.connect(self._calibration_test_off)
+        row_off.addWidget(btn_test_off)
+        btn_save_cal = _btn("保存校准", "accent", 80)
+        btn_save_cal.clicked.connect(self._calibration_save)
+        row_off.addWidget(btn_save_cal)
+        self.lbl_cal_status = _lbl("", TEXT_DIM, size=11)
+        row_off.addWidget(self.lbl_cal_status)
+        row_off.addStretch()
+        layout.addLayout(row_off)
+
+        return box
+
+    # ── 光照阈值配置卡片 ──────────────────────────────────────────────
+
+    def _build_light_threshold_card(self):
+        """光照阈值配置：数值输入 + '使用当前读数'按钮"""
+        box = QGroupBox("☀️ 光照阈值配置")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(6)
+
+        # 加载当前阈值
+        threshold = self.engine.user_settings.get("dark_threshold", 150.0)
+
+        row_threshold = QHBoxLayout()
+        row_threshold.addWidget(_lbl("阈值:", TEXT_DIM, size=11))
+        self.spin_dark_threshold = QDoubleSpinBox()
+        self.spin_dark_threshold.setRange(0.0, 65535.0)
+        self.spin_dark_threshold.setValue(threshold)
+        self.spin_dark_threshold.setSuffix(" lux")
+        self.spin_dark_threshold.setDecimals(1)
+        self.spin_dark_threshold.setFixedWidth(100)
+        row_threshold.addWidget(self.spin_dark_threshold)
+        btn_use_current = _btn("用当前值", "accent", 80)
+        btn_use_current.clicked.connect(self._light_use_current)
+        row_threshold.addWidget(btn_use_current)
+        btn_save_threshold = _btn("保存", "accent", 50)
+        btn_save_threshold.clicked.connect(self._light_save_threshold)
+        row_threshold.addWidget(btn_save_threshold)
+        self.lbl_light_threshold_status = _lbl("", TEXT_DIM, size=11)
+        row_threshold.addWidget(self.lbl_light_threshold_status)
+        row_threshold.addStretch()
+        layout.addLayout(row_threshold)
+
+        return box
+
+    # ── 灯光条件复选框卡片 ────────────────────────────────────────────
+
+    def _build_conditions_card(self):
+        """灯光条件复选框：时间/光照/人员在场"""
+        box = QGroupBox("💡 灯光控制条件")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(4)
+
+        # 加载当前条件配置
+        conditions = self.engine.user_settings.get("light_conditions", {})
+
+        self.chk_time = QCheckBox("时间条件（日出日落）")
+        self.chk_time.setChecked(conditions.get("time_enabled", True))
+        layout.addWidget(self.chk_time)
+
+        self.chk_light = QCheckBox("光照条件（低于阈值）")
+        self.chk_light.setChecked(conditions.get("light_enabled", True))
+        layout.addWidget(self.chk_light)
+
+        row_last = QHBoxLayout()
+        self.chk_presence = QCheckBox("人员在场条件")
+        self.chk_presence.setChecked(conditions.get("presence_enabled", True))
+        row_last.addWidget(self.chk_presence)
+        row_last.addStretch()
+        btn_save_cond = _btn("保存", "accent", 50)
+        btn_save_cond.clicked.connect(self._conditions_save)
+        row_last.addWidget(btn_save_cond)
+        self.lbl_conditions_status = _lbl("", TEXT_DIM, size=11)
+        row_last.addWidget(self.lbl_conditions_status)
+        layout.addLayout(row_last)
+
+        return box
+
+    # ── 时间回退配置卡片 ──────────────────────────────────────────────
+
+    def _build_time_fallback_card(self):
+        """时间回退配置：白天开始/结束时间输入"""
+        box = QGroupBox("🕐 时间回退配置")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(6)
+
+        # 加载当前配置
+        fallback = self.engine.user_settings.get("fallback_daytime", {})
+
+        row = QHBoxLayout()
+        row.addWidget(_lbl("白天:", TEXT_DIM, size=11))
+        self.edit_fallback_start = QLineEdit(fallback.get("start", "06:00"))
+        self.edit_fallback_start.setFixedWidth(60)
+        self.edit_fallback_start.setPlaceholderText("HH:MM")
+        row.addWidget(self.edit_fallback_start)
+        row.addWidget(_lbl("~", TEXT_DIM, size=11))
+        self.edit_fallback_end = QLineEdit(fallback.get("end", "18:00"))
+        self.edit_fallback_end.setFixedWidth(60)
+        self.edit_fallback_end.setPlaceholderText("HH:MM")
+        row.addWidget(self.edit_fallback_end)
+        btn_save_time = _btn("保存", "accent", 50)
+        btn_save_time.clicked.connect(self._time_fallback_save)
+        row.addWidget(btn_save_time)
+        self.lbl_time_fallback_status = _lbl("", TEXT_DIM, size=11)
+        row.addWidget(self.lbl_time_fallback_status)
+        row.addStretch()
+        layout.addLayout(row)
+
+        layout.addWidget(_lbl("API不可用时使用此回退时间范围", TEXT_DIM, size=10))
+
+        return box
+
+    # ── 温度阈值配置卡片 ──────────────────────────────────────────────
+
+    def _build_temperature_card(self):
+        """温度阈值配置：制冷/制热阈值输入"""
+        box = QGroupBox("❄️ 温度阈值配置")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(6)
+
+        # 加载当前配置
+        ac_cfg = self.engine.user_settings.get("ac_thresholds", {})
+
+        row = QHBoxLayout()
+        row.addWidget(_lbl("制冷 >", TEXT_DIM, size=11))
+        self.spin_cooling = QDoubleSpinBox()
+        self.spin_cooling.setRange(15.0, 40.0)
+        self.spin_cooling.setValue(ac_cfg.get("cooling", 28.0))
+        self.spin_cooling.setSuffix("°C")
+        self.spin_cooling.setDecimals(1)
+        self.spin_cooling.setFixedWidth(80)
+        row.addWidget(self.spin_cooling)
+        row.addWidget(_lbl("制热 <", TEXT_DIM, size=11))
+        self.spin_heating = QDoubleSpinBox()
+        self.spin_heating.setRange(0.0, 30.0)
+        self.spin_heating.setValue(ac_cfg.get("heating", 18.0))
+        self.spin_heating.setSuffix("°C")
+        self.spin_heating.setDecimals(1)
+        self.spin_heating.setFixedWidth(80)
+        row.addWidget(self.spin_heating)
+        btn_save_temp = _btn("保存", "accent", 50)
+        btn_save_temp.clicked.connect(self._temperature_save)
+        row.addWidget(btn_save_temp)
+        self.lbl_temp_threshold_status = _lbl("", TEXT_DIM, size=11)
+        row.addWidget(self.lbl_temp_threshold_status)
+        row.addStretch()
+        layout.addLayout(row)
+
+        return box
+
+    # ── IR Wizard 向导卡片 ────────────────────────────────────────────
+
+    def _build_ir_wizard_card(self):
+        """IR Wizard 向导界面：步骤显示 + 录制/跳过/重试按钮"""
+        box = QGroupBox("📡 红外录制向导")
         layout = QVBoxLayout(box)
         layout.setContentsMargins(10, 16, 10, 10)
         layout.setSpacing(8)
 
-        # 下拉框：显示名与文件名分离
+        # 向导状态
+        self.lbl_wizard_status = _lbl("向导未启动", TEXT_DIM, size=11)
+        layout.addWidget(self.lbl_wizard_status)
+
+        # 进度条
+        self.progress_wizard = QProgressBar()
+        self.progress_wizard.setRange(0, 12)
+        self.progress_wizard.setValue(0)
+        self.progress_wizard.setTextVisible(True)
+        self.progress_wizard.setFormat("%v / %m 步")
+        layout.addWidget(self.progress_wizard)
+
+        # 当前步骤指令
+        self.lbl_wizard_instruction = _lbl("", ACCENT, bold=True, size=12)
+        self.lbl_wizard_instruction.setMinimumHeight(36)
+        layout.addWidget(self.lbl_wizard_instruction)
+
+        layout.addWidget(_sep())
+
+        # 控制按钮
+        row_btns = QHBoxLayout()
+        self.btn_wizard_start = _btn("开始向导", "accent", 90)
+        self.btn_wizard_start.clicked.connect(self._wizard_start)
+        row_btns.addWidget(self.btn_wizard_start)
+
+        self.btn_wizard_record = _btn("录制", "on", 70)
+        self.btn_wizard_record.clicked.connect(self._wizard_record)
+        self.btn_wizard_record.setEnabled(False)
+        row_btns.addWidget(self.btn_wizard_record)
+
+        self.btn_wizard_skip = _btn("跳过", width=70)
+        self.btn_wizard_skip.clicked.connect(self._wizard_skip)
+        self.btn_wizard_skip.setEnabled(False)
+        row_btns.addWidget(self.btn_wizard_skip)
+
+        self.btn_wizard_retry = _btn("重试", width=70)
+        self.btn_wizard_retry.clicked.connect(self._wizard_retry)
+        self.btn_wizard_retry.setEnabled(False)
+        row_btns.addWidget(self.btn_wizard_retry)
+
+        row_btns.addStretch()
+        layout.addLayout(row_btns)
+
+        # 完成按钮
+        row_finish = QHBoxLayout()
+        self.btn_wizard_finish = _btn("完成并保存", "accent", 100)
+        self.btn_wizard_finish.clicked.connect(self._wizard_finish)
+        self.btn_wizard_finish.setEnabled(False)
+        row_finish.addWidget(self.btn_wizard_finish)
+        self.lbl_wizard_result = _lbl("", TEXT_DIM, size=11)
+        row_finish.addWidget(self.lbl_wizard_result)
+        row_finish.addStretch()
+        layout.addLayout(row_finish)
+
+        return box
+
+    # ── 红外控制卡片 ──────────────────────────────────────────────────
+
+    def _build_ir_card(self):
+        box = QGroupBox("📡 红外控制")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(8)
+
+        # 学习区域
+        row_learn = QHBoxLayout()
+        row_learn.addWidget(_lbl("命令名称:", TEXT_DIM, size=11))
+        self.edit_ir_name = QLineEdit()
+        self.edit_ir_name.setPlaceholderText("例: ac_on_cool")
+        self.edit_ir_name.setFixedWidth(140)
+        row_learn.addWidget(self.edit_ir_name)
+        btn_learn = _btn("学习", "accent", 60)
+        btn_learn.clicked.connect(self._ir_learn)
+        row_learn.addWidget(btn_learn)
+        row_learn.addStretch()
+        layout.addLayout(row_learn)
+
+        self.lbl_ir_status = _lbl("", TEXT_DIM, size=11)
+        layout.addWidget(self.lbl_ir_status)
+
+        layout.addWidget(_sep())
+
+        # 命令列表 + 发送/删除
+        row_cmd = QHBoxLayout()
+        row_cmd.addWidget(_lbl("已学习命令:", TEXT_DIM, size=11))
+        self.combo_ir = QComboBox()
+        self.combo_ir.setMinimumWidth(140)
+        row_cmd.addWidget(self.combo_ir)
+        btn_send = _btn("发送", "on", 60)
+        btn_send.clicked.connect(self._ir_send)
+        row_cmd.addWidget(btn_send)
+        btn_del = _btn("删除", "off", 60)
+        btn_del.clicked.connect(self._ir_delete)
+        row_cmd.addWidget(btn_del)
+        row_cmd.addStretch()
+        layout.addLayout(row_cmd)
+
+        return box
+
+
+    # ── 模型切换卡片 ──────────────────────────────────────────────────
+
+    def _build_model_card(self):
+        box = QGroupBox("🧠 模型切换")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(8)
+
         self.combo_model = QComboBox()
         self.combo_model.setMaxVisibleItems(20)
+        from PyQt6.QtGui import QColor as _QColor
         for label, fname, is_header in MODEL_ENTRIES:
-            self.combo_model.addItem(label, userData=fname)  # userData 存文件名
-        # 分组标题行：禁用 + 橙色
+            self.combo_model.addItem(label, userData=fname)
         model_obj = self.combo_model.model()
         for i, (_, fname, is_header) in enumerate(MODEL_ENTRIES):
             if is_header:
                 item = model_obj.item(i)
                 item.setEnabled(False)
-                item.setForeground(QColor(AMBER))
-        # 默认选中 yolov8n
+                item.setForeground(_QColor(AMBER))
         self.combo_model.setCurrentIndex(1)
         layout.addWidget(self.combo_model)
 
-        # 自定义路径输入提示
-        hint = _lbl("或直接输入本地 .pt 文件路径:", DIM, size=11)
+        hint = _lbl("或直接输入本地 .pt 文件路径:", TEXT_DIM, size=11)
         layout.addWidget(hint)
 
-        from PyQt6.QtWidgets import QLineEdit
         self.edit_custom = QLineEdit()
         self.edit_custom.setPlaceholderText("例: C:/models/best.pt")
-        self.edit_custom.setStyleSheet(
-            f"background:{BORDER};color:{TEXT};border:1px solid #1a4080;"
-            f"border-radius:6px;padding:4px 8px;min-height:26px;")
         layout.addWidget(self.edit_custom)
 
-        btn_switch = QPushButton("切换模型")
-        btn_switch.setStyleSheet(
-            f"background:{BLUE};color:white;font-weight:bold;"
-            f"border-radius:6px;padding:6px;")
+        btn_switch = _btn("切换模型", "accent")
         btn_switch.clicked.connect(self._switch_model)
         layout.addWidget(btn_switch)
 
-        self.lbl_model_cur = _lbl("当前: yolov8n.pt", DIM, size=11)
+        self.lbl_model_cur = _lbl("当前: yolov8n.pt", TEXT_DIM, size=11)
         self.lbl_model_msg = _lbl("", GREEN, size=11)
         layout.addWidget(self.lbl_model_cur)
         layout.addWidget(self.lbl_model_msg)
@@ -682,31 +1053,24 @@ class MainWindow(QMainWindow):
     # ── 恢复上次配置 ──────────────────────────────────────────────────
 
     def _apply_saved_settings(self):
-        """从 user_settings.json 恢复上次的配置"""
-        s = user_settings.load()
-
-        # 恢复模型选择
-        saved_model = s.get("yolo_model", "yolov8n.pt")
-        # 在下拉框中找到对应条目
+        """从 user_settings 恢复上次的配置"""
+        saved_model = self.engine.user_settings.get("yolo_model", "yolov8n.pt")
         for i, (_, fname, _) in enumerate(MODEL_ENTRIES):
             if fname == saved_model:
                 self.combo_model.setCurrentIndex(i)
                 break
         self.lbl_model_cur.setText(f"当前: {saved_model}")
 
-        # 恢复检测间隔
-        interval = s.get("detection_interval", 2.0)
-        self.slider_interval.setValue(int(interval * 10))
-        self.lbl_interval.setText(f"{interval:.1f} s")
+        mode = self.engine.user_settings.get("control_mode", "AUTO")
+        # Mode is already set in engine init
 
-        # 恢复控制模式
-        mode = s.get("control_mode", "AUTO")
-        self.engine.set_mode(mode)
+        # Refresh IR command list
+        self._refresh_ir_commands()
 
     # ── 后台线程 ──────────────────────────────────────────────────────
 
     def _start_threads(self):
-        self.cap_thread = CaptureThread(self.detector)
+        self.cap_thread = CaptureThread(self.engine.detector)
         self.cap_thread.frame_ready.connect(self._on_frame)
         self.cap_thread.start()
 
@@ -714,13 +1078,9 @@ class MainWindow(QMainWindow):
         self.stat_thread.status_ready.connect(self._on_status)
         self.stat_thread.start()
 
-    # ── 槽：帧渲染（主线程，直接操作 QLabel）────────────────────────
+    # ── 槽：帧渲染 ───────────────────────────────────────────────────
 
     def _on_frame(self, frame: np.ndarray):
-        """
-        BGR numpy array → QPixmap，Format_BGR888 直接映射内存，
-        无需 cvtColor，FastTransformation 省去平滑插值开销。
-        """
         h, w, ch = frame.shape
         img = QImage(frame.data, w, h, ch * w, QImage.Format.Format_BGR888)
         pix = QPixmap.fromImage(img).scaled(
@@ -733,86 +1093,60 @@ class MainWindow(QMainWindow):
     # ── 槽：状态更新 ──────────────────────────────────────────────────
 
     def _on_status(self, s: dict):
-        det  = s.get("detector", {})
-        sen  = s.get("sensor", {})
-        dev  = s.get("devices", {})
-        flt  = s.get("filter", {})
-        lamb = s.get("light_ambient", {})
-        logs = s.get("recent_logs", [])
-        mode = s.get("mode", "AUTO")
+        # 人员检测
+        det = s.get("detector", {})
+        presence = s.get("presence", False)
+        person_count = det.get("person_count", 0) if det else 0
 
-        # ── 人员检测 ──
-        count = det.get("person_count", 0)
-        self.lbl_count.setText(str(count))
+        self.lbl_count.setText(str(person_count))
         self.lbl_count.setStyleSheet(
-            f"color:{GREEN if count > 0 else RED};"
+            f"color:{GREEN if person_count > 0 else RED};"
             f"font-size:42px;font-weight:bold;")
 
-        raw = det.get("has_person", False)
-        self.lbl_raw.setText("检测到" if raw else "未检测")
-        self.lbl_raw.setStyleSheet(
-            f"color:{GREEN if raw else DIM};font-weight:bold;")
+        self.lbl_presence.setText("有人" if presence else "无人")
+        self.lbl_presence.setStyleSheet(
+            f"color:{GREEN if presence else RED};font-weight:bold;")
 
-        stable = flt.get("stable_state", False)
-        self.lbl_stable.setText("有人" if stable else "无人")
-        self.lbl_stable.setStyleSheet(
-            f"color:{GREEN if stable else RED};font-weight:bold;")
+        # 性能
+        if det:
+            fps = det.get("stream_fps", 0)
+            self.lbl_fps.setText(f"采集: {fps} fps")
+            infer_ms = det.get("infer_ms", 0)
+            ic = GREEN if infer_ms < 200 else (AMBER if infer_ms < 500 else RED)
+            self.lbl_infer.setText(f"推理: {infer_ms} ms")
+            self.lbl_infer.setStyleSheet(
+                f"color:{ic};font-size:11px;font-family:Consolas,monospace;")
+            self.lbl_backend.setText(f"后端: {det.get('camera_backend', '—')}")
 
-        # ── 性能 ──
-        fps = det.get("stream_fps", 0)
-        self.lbl_fps.setText(f"采集: {fps} fps")
+        # 环境
+        temp = s.get("temperature")
+        humi = s.get("humidity")
+        lux = s.get("lux", 0.0)
+        self.lbl_temp.setText(f"{temp}°C" if temp is not None else "—°C")
+        self.lbl_humi.setText(f"{humi}%" if humi is not None else "—%")
+        self.lbl_lux.setText(f"{lux:.0f} lux" if lux else "— lux")
 
-        infer_ms = det.get("infer_ms", 0)
-        ic = GREEN if infer_ms < 200 else (AMBER if infer_ms < 500 else RED)
-        self.lbl_infer.setText(f"推理: {infer_ms} ms")
-        self.lbl_infer.setStyleSheet(f"color:{ic};font-size:11px;font-family:Consolas,monospace;")
+        # 灯光状态
+        light_on = s.get("light_on", False)
+        self.lbl_light.setText("开启" if light_on else "关闭")
+        self.lbl_light.setStyleSheet(
+            f"color:{GREEN};font-weight:bold;" if light_on
+            else f"color:{RED};font-weight:bold;")
 
-        self.lbl_backend.setText(f"后端: {det.get('camera_backend','—')}")
-
-        if infer_ms > 0:
-            suggest = infer_ms * 1.5 / 1000
-            self.lbl_suggest.setText(f"建议 ≥ {suggest:.1f}s")
-
-        # ── 模型 ──
-        model_name = det.get("model_name", "—")
-        loading    = det.get("model_loading", False)
-        self.lbl_model_cur.setText(
-            "加载中…" if loading else f"当前: {model_name}")
-        self.lbl_model_cur.setStyleSheet(
-            f"color:{AMBER};font-size:11px;" if loading
-            else f"color:{DIM};font-size:11px;")
-
-        # ── 环境 ──
-        self.lbl_temp.setText(f"{sen.get('temperature','—')}°C")
-        self.lbl_humi.setText(f"{sen.get('humidity','—')}%")
-        lux = lamb.get("lux", "—") if lamb else "—"
-        self.lbl_lux.setText(f"{lux} lux")
-
-        ac_map = {"off": "关闭", "cooling": "制冷", "heating": "制热"}
-        ac_mode_str = ac_map.get(dev.get("ac_mode", "off"), "—")
-        self.lbl_ac_mode.setText(ac_mode_str)
-        self.lbl_ac_mode.setStyleSheet(
-            f"color:{GREEN if dev.get('ac') else DIM};font-weight:bold;")
-
-        # ── 设备 ──
-        self._dev_lbl(self.lbl_light, dev.get("light", False), "开启", "关闭")
-        self._dev_lbl(self.lbl_power, dev.get("power", False), "开启", "关闭")
-        self._dev_lbl(self.lbl_ac,    dev.get("ac",    False), ac_mode_str, "关闭")
-
-        servo = dev.get("servo_calibration", {})
+        # 舵机
+        servo = s.get("servo", {})
         if servo:
-            current_angle = int(servo.get("current_angle", 90))
-            if not self.slider_servo.isSliderDown():
-                self.slider_servo.setValue(current_angle)
-            self.lbl_servo_angle.setText(f"{current_angle}°")
+            current_angle = servo.get("current_angle")
+            if current_angle is not None and not self.slider_servo.isSliderDown():
+                self.slider_servo.setValue(int(current_angle))
             self.lbl_servo_saved.setText(
-                f"开灯按压{servo.get('angle_on', 60)}° / "
-                f"关灯按压{servo.get('angle_off', 120)}° / "
-                f"中立回位{servo.get('angle_neutral', 90)}°"
+                f"开灯{servo.get('angle_on', 60)}° / "
+                f"关灯{servo.get('angle_off', 120)}° / "
+                f"中立{servo.get('angle_neutral', 90)}°"
             )
-            self.edit_servo_duration.setText(str(servo.get("action_duration", 0.5)))
 
-        # ── 模式按钮高亮 ──
+        # 模式按钮高亮
+        mode = s.get("mode", "AUTO")
         self.btn_auto.setProperty(
             "role", "mode_active" if mode == "AUTO" else "normal")
         self.btn_manual.setProperty(
@@ -821,89 +1155,424 @@ class MainWindow(QMainWindow):
             b.style().unpolish(b)
             b.style().polish(b)
 
-        # ── 日志 ──
-        if logs:
-            self.log_text.clear()
-            for entry in reversed(logs[-40:]):
-                self.log_text.append(
-                    f'<span style="color:{GREEN}">{entry["time"]}</span>'
-                    f'&nbsp;&nbsp;{entry["action"]}')
+        # 模型
+        if det:
+            model_name = det.get("model_name", "—")
+            self.lbl_model_cur.setText(f"当前: {model_name}")
 
-        # ── 状态栏 ──
+        # 状态栏
+        ac_state = s.get("ac_state", "off")
         self.lbl_status.setText(
-            f"人数: {count}  |  温度: {sen.get('temperature','—')}°C  |  "
-            f"模式: {mode}  |  {det.get('camera_backend','—')}")
+            f"人数: {person_count}  |  "
+            f"温度: {temp if temp is not None else '—'}°C  |  "
+            f"空调: {ac_state}  |  "
+            f"模式: {mode}")
 
-    def _dev_lbl(self, lbl: QLabel, on: bool, on_text: str, off_text: str):
-        lbl.setText(on_text if on else off_text)
-        lbl.setStyleSheet(
-            f"color:{GREEN};font-weight:bold;" if on
-            else f"color:{RED};font-weight:bold;")
 
     # ── 控制槽 ────────────────────────────────────────────────────────
 
-    def _on_interval_released(self):
-        s = self.slider_interval.value() / 10.0
-        self.detector.set_detection_interval(s)
-        self.engine._log_action(f"检测间隔调整为 {s}s")
-        user_settings.save({"detection_interval": s})
-
     def _set_mode(self, mode: str):
         self.engine.set_mode(mode)
-        user_settings.save({"control_mode": mode})
 
-    def _control(self, device: str, on: bool):
-        if device == "light":
-            self.engine.devices.set(device, on, force=True)
-        else:
-            self.engine.devices.set(device, on)
-        self.engine._log_action(
-            f"[手动] {'开启' if on else '关闭'} {device}")
-
-    def _control_ac(self, on: bool, mode: str = "cooling"):
-        self.engine.devices.set_ac(on, mode)
-        self.engine._log_action(
-            f"[手动] 空调 {'开启-' + mode if on else '关闭'}")
+    def _servo_press(self, action: str):
+        """执行舵机开灯/关灯动作"""
+        try:
+            if action == "on":
+                self.engine.servo.press_on()
+            else:
+                self.engine.servo.press_off()
+            logger.info(f"[手动] 舵机 press_{action}")
+        except Exception as e:
+            logger.error(f"舵机动作失败: {e}")
 
     def _servo_move_slider(self):
         angle = self.slider_servo.value()
-        actual = self.engine.devices.move_servo_to(angle)
-        self.slider_servo.setValue(actual)
-        self.engine._log_action(f"[标定] 舵机移动到 {actual}°")
+        try:
+            self.engine.servo.move_to(angle)
+            self.lbl_servo_angle.setText(f"{angle}°")
+            logger.info(f"[标定] 舵机移动到 {angle}°")
+        except Exception as e:
+            logger.error(f"舵机移动失败: {e}")
 
     def _servo_nudge(self, delta: int):
-        actual = self.engine.devices.nudge_servo(delta)
-        self.slider_servo.setValue(actual)
-        self.engine._log_action(f"[标定] 舵机微调 {delta:+d}° -> {actual}°")
+        current = self.slider_servo.value()
+        target = max(0, min(180, current + delta))
+        self.slider_servo.setValue(target)
+        try:
+            self.engine.servo.move_to(target)
+            logger.info(f"[标定] 舵机微调 {delta:+d}° -> {target}°")
+        except Exception as e:
+            logger.error(f"舵机微调失败: {e}")
 
     def _servo_move_neutral(self):
-        actual = self.engine.devices.move_servo_to(self.engine.devices.get_servo_status()["angle_neutral"])
-        self.slider_servo.setValue(actual)
-        self.engine._log_action(f"[标定] 舵机回到中立 {actual}°")
+        status = self.engine.servo.get_status()
+        neutral = status.get("angle_neutral", 90)
+        self.slider_servo.setValue(neutral)
+        try:
+            self.engine.servo.move_to(neutral)
+            logger.info(f"[标定] 舵机回到中立 {neutral}°")
+        except Exception as e:
+            logger.error(f"舵机回中立失败: {e}")
 
     def _servo_save_preset(self, preset: str):
-        status = self.engine.devices.save_servo_preset(preset, self.slider_servo.value())
-        self.slider_servo.setValue(status["current_angle"])
-        preset_map = {"on": "开灯按压角", "off": "关灯按压角", "neutral": "中立回位角"}
-        self.engine._log_action(f"[标定] 已记录舵机{preset_map.get(preset, preset)}")
+        angle = self.slider_servo.value()
+        try:
+            self.engine.servo.calibrate(preset, angle)
+            self.engine.servo.save_calibration()
+            preset_map = {"on": "开灯角", "off": "关灯角", "neutral": "中立角"}
+            logger.info(f"[标定] 已记录舵机{preset_map.get(preset, preset)} = {angle}°")
+        except Exception as e:
+            logger.error(f"保存预设失败: {e}")
 
     def _servo_save_duration(self):
         try:
             duration = float(self.edit_servo_duration.text().strip())
         except ValueError:
-            self.lbl_status.setText("舵机保持时长必须是数字")
+            self.lbl_status.setText("保持时长必须是数字")
             return
-        status = self.engine.devices.save_servo_config(action_duration=duration)
-        self.edit_servo_duration.setText(str(status["action_duration"]))
-        self.engine._log_action(f"[标定] 已保存舵机保持时长 {status['action_duration']:.2f}s")
+        # Update calibration duration directly
+        self.engine.servo._calibration["action_duration"] = duration
+        self.engine.servo.save_calibration()
+        logger.info(f"[标定] 已保存舵机保持时长 {duration:.2f}s")
+
+    # ── 舵机偏移量校准槽 ──────────────────────────────────────────────
+
+    def _calibration_test_neutral(self):
+        """测试中位角度：立即移动到该位置"""
+        angle = self.spin_neutral.value()
+        try:
+            self.engine.servo.set_neutral(angle)
+            self.lbl_cal_status.setText(f"中位角度已设为 {angle}°")
+            self.lbl_cal_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            logger.info(f"[校准] 中位角度测试: {angle}°")
+        except Exception as e:
+            self.lbl_cal_status.setText(f"测试失败: {e}")
+            self.lbl_cal_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    def _calibration_test_on(self):
+        """测试开灯偏移：执行 neutral → target → neutral 动作"""
+        offset = self.spin_on_offset.value()
+        try:
+            self.engine.servo.set_on_offset(offset)
+            self.lbl_cal_status.setText(f"开灯偏移已设为 {offset}°，测试完成")
+            self.lbl_cal_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            logger.info(f"[校准] 开灯偏移测试: {offset}°")
+        except Exception as e:
+            self.lbl_cal_status.setText(f"测试失败: {e}")
+            self.lbl_cal_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    def _calibration_test_off(self):
+        """测试关灯偏移：执行 neutral → target → neutral 动作"""
+        offset = self.spin_off_offset.value()
+        try:
+            self.engine.servo.set_off_offset(offset)
+            self.lbl_cal_status.setText(f"关灯偏移已设为 {offset}°，测试完成")
+            self.lbl_cal_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            logger.info(f"[校准] 关灯偏移测试: {offset}°")
+        except Exception as e:
+            self.lbl_cal_status.setText(f"测试失败: {e}")
+            self.lbl_cal_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    def _calibration_save(self):
+        """保存校准数据到 UserSettings"""
+        calibration = {
+            "neutral_angle": self.spin_neutral.value(),
+            "on_offset": self.spin_on_offset.value(),
+            "off_offset": self.spin_off_offset.value(),
+        }
+        self.engine.user_settings.set("servo_calibration", calibration)
+        # 更新引擎中的舵机校准
+        self.engine.servo._calibration.update(calibration)
+        self.lbl_cal_status.setText("校准数据已保存")
+        self.lbl_cal_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+        logger.info(f"[校准] 已保存: {calibration}")
+
+    # ── 光照阈值槽 ────────────────────────────────────────────────────
+
+    def _light_use_current(self):
+        """使用当前光照读数作为阈值"""
+        try:
+            status = self.engine.light_sensor.get_status()
+            lux = status.get("lux", 0.0)
+            if lux is not None and lux > 0:
+                self.spin_dark_threshold.setValue(lux)
+                self.lbl_light_threshold_status.setText(f"已读取当前值: {lux:.1f} lux")
+                self.lbl_light_threshold_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            else:
+                self.lbl_light_threshold_status.setText("当前无有效光照读数")
+                self.lbl_light_threshold_status.setStyleSheet(f"color:{AMBER};font-size:11px;")
+        except Exception as e:
+            self.lbl_light_threshold_status.setText(f"读取失败: {e}")
+            self.lbl_light_threshold_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    def _light_save_threshold(self):
+        """保存光照阈值到 UserSettings"""
+        threshold = self.spin_dark_threshold.value()
+        self.engine.user_settings.set("dark_threshold", threshold)
+        # 更新光照传感器的阈值
+        try:
+            self.engine.light_sensor.set_threshold(threshold)
+        except AttributeError:
+            pass  # 旧版本可能没有 set_threshold 方法
+        self.lbl_light_threshold_status.setText(f"已保存: {threshold:.1f} lux")
+        self.lbl_light_threshold_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+        logger.info(f"[配置] 光照阈值已保存: {threshold:.1f} lux")
+
+    # ── 灯光条件槽 ────────────────────────────────────────────────────
+
+    def _conditions_save(self):
+        """保存灯光条件配置到 UserSettings"""
+        conditions = {
+            "time_enabled": self.chk_time.isChecked(),
+            "light_enabled": self.chk_light.isChecked(),
+            "presence_enabled": self.chk_presence.isChecked(),
+        }
+        self.engine.user_settings.set("light_conditions", conditions)
+        # 更新条件评估器配置
+        try:
+            from src.condition_evaluator import ConditionConfig
+            new_config = ConditionConfig(
+                time_enabled=conditions["time_enabled"],
+                light_enabled=conditions["light_enabled"],
+                presence_enabled=conditions["presence_enabled"],
+            )
+            self.engine.condition_evaluator.update_config(new_config)
+        except Exception as e:
+            logger.warning(f"更新条件评估器失败: {e}")
+        self.lbl_conditions_status.setText("条件配置已保存")
+        self.lbl_conditions_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+        logger.info(f"[配置] 灯光条件已保存: {conditions}")
+
+    # ── 时间回退配置槽 ────────────────────────────────────────────────
+
+    def _time_fallback_save(self):
+        """保存时间回退配置到 UserSettings"""
+        start = self.edit_fallback_start.text().strip()
+        end = self.edit_fallback_end.text().strip()
+
+        # 简单格式验证
+        import re
+        time_pattern = re.compile(r"^\d{2}:\d{2}$")
+        if not time_pattern.match(start) or not time_pattern.match(end):
+            self.lbl_time_fallback_status.setText("格式错误，请使用 HH:MM")
+            self.lbl_time_fallback_status.setStyleSheet(f"color:{RED};font-size:11px;")
+            return
+
+        fallback = {"start": start, "end": end}
+        self.engine.user_settings.set("fallback_daytime", fallback)
+        # 更新时间条件提供者
+        try:
+            self.engine.time_condition._fallback_start = start
+            self.engine.time_condition._fallback_end = end
+        except AttributeError:
+            pass
+        self.lbl_time_fallback_status.setText("时间配置已保存")
+        self.lbl_time_fallback_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+        logger.info(f"[配置] 时间回退已保存: {fallback}")
+
+    # ── 温度阈值槽 ────────────────────────────────────────────────────
+
+    def _temperature_save(self):
+        """保存温度阈值到 UserSettings"""
+        cooling = self.spin_cooling.value()
+        heating = self.spin_heating.value()
+
+        if heating >= cooling:
+            self.lbl_temp_threshold_status.setText("制热阈值必须低于制冷阈值")
+            self.lbl_temp_threshold_status.setStyleSheet(f"color:{RED};font-size:11px;")
+            return
+
+        thresholds = {"cooling": cooling, "heating": heating}
+        self.engine.user_settings.set("ac_thresholds", thresholds)
+        # 更新空调控制器阈值
+        try:
+            self.engine.ac_controller._cooling_threshold = cooling
+            self.engine.ac_controller._heating_threshold = heating
+        except AttributeError:
+            pass
+        self.lbl_temp_threshold_status.setText(f"已保存: 制冷>{cooling}°C, 制热<{heating}°C")
+        self.lbl_temp_threshold_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+        logger.info(f"[配置] 温度阈值已保存: {thresholds}")
+
+    # ── IR Wizard 向导槽 ──────────────────────────────────────────────
+
+    def _wizard_start(self):
+        """启动IR录制向导"""
+        try:
+            from src.ir_wizard import IRWizard
+            # 创建向导实例（如果引擎没有的话）
+            if not hasattr(self.engine, '_ir_wizard') or self.engine._ir_wizard is None:
+                self.engine._ir_wizard = IRWizard(self.engine.ir_controller)
+            result = self.engine._ir_wizard.start()
+            if result.get("success"):
+                self._wizard_update_ui(result)
+                self.btn_wizard_start.setEnabled(False)
+                self.btn_wizard_record.setEnabled(True)
+                self.btn_wizard_skip.setEnabled(True)
+                self.btn_wizard_retry.setEnabled(True)
+                self.btn_wizard_finish.setEnabled(False)
+                self.lbl_wizard_status.setText("向导已启动")
+                self.lbl_wizard_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+                logger.info("[IR Wizard] 向导已启动")
+            else:
+                self.lbl_wizard_status.setText(f"启动失败: {result.get('error', '')}")
+                self.lbl_wizard_status.setStyleSheet(f"color:{RED};font-size:11px;")
+        except Exception as e:
+            self.lbl_wizard_status.setText(f"启动失败: {e}")
+            self.lbl_wizard_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    def _wizard_record(self):
+        """录制当前步骤"""
+        if not hasattr(self.engine, '_ir_wizard') or self.engine._ir_wizard is None:
+            return
+        self.lbl_wizard_status.setText("录制中… 请对准红外接收器按下遥控器按键")
+        self.lbl_wizard_status.setStyleSheet(f"color:{AMBER};font-size:11px;")
+        QApplication.processEvents()
+
+        result = self.engine._ir_wizard.record_current(timeout=10.0)
+        if result.get("success"):
+            self.lbl_wizard_status.setText(f"录制成功: {result.get('command_name', '')}")
+            self.lbl_wizard_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            self._wizard_update_ui(result)
+        else:
+            self.lbl_wizard_status.setText(f"录制失败: {result.get('error', '超时')}")
+            self.lbl_wizard_status.setStyleSheet(f"color:{RED};font-size:11px;")
+        self._wizard_check_complete()
+
+    def _wizard_skip(self):
+        """跳过当前步骤"""
+        if not hasattr(self.engine, '_ir_wizard') or self.engine._ir_wizard is None:
+            return
+        result = self.engine._ir_wizard.skip_current()
+        if result.get("success"):
+            self.lbl_wizard_status.setText(f"已跳过: {result.get('command_name', '')}")
+            self.lbl_wizard_status.setStyleSheet(f"color:{AMBER};font-size:11px;")
+            self._wizard_update_ui(result)
+        self._wizard_check_complete()
+
+    def _wizard_retry(self):
+        """重试当前步骤"""
+        if not hasattr(self.engine, '_ir_wizard') or self.engine._ir_wizard is None:
+            return
+        result = self.engine._ir_wizard.retry_current()
+        if result.get("success"):
+            self.lbl_wizard_status.setText(f"请重新录制: {result.get('command_name', '')}")
+            self.lbl_wizard_status.setStyleSheet(f"color:{ACCENT};font-size:11px;")
+            self.lbl_wizard_instruction.setText(result.get("instruction", ""))
+
+    def _wizard_finish(self):
+        """完成向导并保存"""
+        if not hasattr(self.engine, '_ir_wizard') or self.engine._ir_wizard is None:
+            return
+        result = self.engine._ir_wizard.finish()
+        if result.get("success"):
+            recorded = result.get("recorded_count", 0)
+            skipped = result.get("skipped_count", 0)
+            self.lbl_wizard_result.setText(
+                f"完成! 录制 {recorded} 个, 跳过 {skipped} 个")
+            self.lbl_wizard_result.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            self.lbl_wizard_status.setText("向导已完成")
+            self.lbl_wizard_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            # 重置按钮状态
+            self.btn_wizard_start.setEnabled(True)
+            self.btn_wizard_record.setEnabled(False)
+            self.btn_wizard_skip.setEnabled(False)
+            self.btn_wizard_retry.setEnabled(False)
+            self.btn_wizard_finish.setEnabled(False)
+            self.lbl_wizard_instruction.setText("")
+            # 刷新IR命令列表
+            self._refresh_ir_commands()
+            logger.info(f"[IR Wizard] 完成: 录制{recorded}个, 跳过{skipped}个")
+
+    def _wizard_update_ui(self, result: dict):
+        """更新向导UI状态"""
+        step = result.get("current_step", 1)
+        total = result.get("total_steps", 12)
+        instruction = result.get("instruction") or result.get("next_instruction", "")
+        self.progress_wizard.setValue(step - 1)
+        self.lbl_wizard_instruction.setText(instruction)
+
+    def _wizard_check_complete(self):
+        """检查向导是否完成"""
+        if not hasattr(self.engine, '_ir_wizard') or self.engine._ir_wizard is None:
+            return
+        if self.engine._ir_wizard.is_complete:
+            self.btn_wizard_record.setEnabled(False)
+            self.btn_wizard_skip.setEnabled(False)
+            self.btn_wizard_retry.setEnabled(False)
+            self.btn_wizard_finish.setEnabled(True)
+            self.progress_wizard.setValue(12)
+            self.lbl_wizard_instruction.setText("所有步骤已完成，请点击「完成并保存」")
+
+    # ── 红外控制槽 ────────────────────────────────────────────────────
+
+    def _refresh_ir_commands(self):
+        """刷新红外命令下拉列表"""
+        self.combo_ir.clear()
+        commands = self.engine.ir_controller.list_commands()
+        for cmd in commands:
+            self.combo_ir.addItem(cmd)
+
+    def _ir_learn(self):
+        """开始红外学习"""
+        name = self.edit_ir_name.text().strip()
+        if not name:
+            self.lbl_ir_status.setText("请输入命令名称")
+            self.lbl_ir_status.setStyleSheet(f"color:{RED};font-size:11px;")
+            return
+
+        self.lbl_ir_status.setText("学习中… 请对准红外接收器按下遥控器按键")
+        self.lbl_ir_status.setStyleSheet(f"color:{AMBER};font-size:11px;")
+        QApplication.processEvents()
+
+        result = self.engine.ir_controller.start_learning(name, timeout=10.0)
+        if result.get("success"):
+            self.lbl_ir_status.setText(
+                f"学习成功: {name} (addr={result['address']}, cmd={result['command']})")
+            self.lbl_ir_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            self.edit_ir_name.clear()
+            self._refresh_ir_commands()
+        else:
+            self.lbl_ir_status.setText(f"学习失败: {result.get('error', '未知错误')}")
+            self.lbl_ir_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    def _ir_send(self):
+        """发送红外命令"""
+        cmd = self.combo_ir.currentText()
+        if not cmd:
+            self.lbl_ir_status.setText("请选择要发送的命令")
+            self.lbl_ir_status.setStyleSheet(f"color:{RED};font-size:11px;")
+            return
+
+        ok = self.engine.ir_controller.send_command(cmd)
+        if ok:
+            self.lbl_ir_status.setText(f"已发送: {cmd}")
+            self.lbl_ir_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+        else:
+            self.lbl_ir_status.setText(f"发送失败: {cmd}")
+            self.lbl_ir_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    def _ir_delete(self):
+        """删除红外命令"""
+        cmd = self.combo_ir.currentText()
+        if not cmd:
+            return
+        ok = self.engine.ir_controller.delete_command(cmd)
+        if ok:
+            self.lbl_ir_status.setText(f"已删除: {cmd}")
+            self.lbl_ir_status.setStyleSheet(f"color:{GREEN};font-size:11px;")
+            self._refresh_ir_commands()
+        else:
+            self.lbl_ir_status.setText(f"删除失败: {cmd}")
+            self.lbl_ir_status.setStyleSheet(f"color:{RED};font-size:11px;")
+
+    # ── 模型切换 ──────────────────────────────────────────────────────
 
     def _switch_model(self):
-        # 优先取自定义路径输入框
         custom = self.edit_custom.text().strip()
         if custom:
             model_path = custom
         else:
-            # 从下拉框 userData 取文件名（与显示文本分离）
             model_path = self.combo_model.currentData()
 
         if not model_path:
@@ -911,16 +1580,39 @@ class MainWindow(QMainWindow):
             self.lbl_model_msg.setStyleSheet(f"color:{RED};font-size:11px;")
             return
 
-        result = self.detector.switch_model(model_path)
-        if result["ok"]:
-            self.lbl_model_msg.setText(f"正在加载 {model_path}…")
+        # 检查本地是否存在模型文件
+        import os
+        weights_dir = os.path.join(os.path.dirname(__file__), "weights")
+        local_path = os.path.join(weights_dir, model_path) if not os.path.isabs(model_path) else model_path
+
+        if not os.path.exists(local_path) and not os.path.isabs(model_path):
+            self.lbl_model_msg.setText(f"本地无此模型，首次使用将自动下载: {model_path}")
             self.lbl_model_msg.setStyleSheet(f"color:{AMBER};font-size:11px;")
-            self.engine._log_action(f"切换模型: {model_path}")
-            self.edit_custom.clear()
-            user_settings.save({"yolo_model": model_path})
+            logger.info("[模型] 本地未找到 %s，ultralytics 将自动下载", model_path)
         else:
-            self.lbl_model_msg.setText(f"失败: {result.get('error','')}")
+            self.lbl_model_msg.setText(f"正在切换: {model_path}…")
+            self.lbl_model_msg.setStyleSheet(f"color:{AMBER};font-size:11px;")
+
+        QApplication.processEvents()
+
+        try:
+            result = self.engine.detector.switch_model(model_path)
+            if result.get("ok"):
+                self.lbl_model_msg.setText(f"✓ 已切换: {model_path}")
+                self.lbl_model_msg.setStyleSheet(f"color:{GREEN};font-size:11px;")
+                self.edit_custom.clear()
+                self.engine.user_settings.set("yolo_model", model_path)
+                self.lbl_model_cur.setText(f"当前: {model_path}")
+                logger.info("[模型] 切换成功: %s", model_path)
+            else:
+                err = result.get('error', '未知错误')
+                self.lbl_model_msg.setText(f"✗ 失败: {err}")
+                self.lbl_model_msg.setStyleSheet(f"color:{RED};font-size:11px;")
+                logger.error("[模型] 切换失败: %s", err)
+        except Exception as e:
+            self.lbl_model_msg.setText(f"✗ 切换失败: {e}")
             self.lbl_model_msg.setStyleSheet(f"color:{RED};font-size:11px;")
+            logger.error("[模型] 切换异常: %s", e)
 
     # ── 关闭 ──────────────────────────────────────────────────────────
 
@@ -948,65 +1640,161 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("智能教室测控系统")
 
-    # 优先使用树莓派常见中文字体；缺字时 Qt 会继续走系统 fallback。
+    # 设置 CJK 字体：Windows 用 Microsoft YaHei，Linux 用 Noto Sans CJK SC
     font = QFont()
-    available = QFontDatabase.families()
-    for family in ("Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei",
-                   "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC"):
-        if family in available:
+    available_fonts = QFontDatabase.families()
+    if sys.platform == "win32":
+        preferred = ["Microsoft YaHei", "Microsoft YaHei UI"]
+    else:
+        preferred = ["Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei"]
+
+    for family in preferred:
+        if family in available_fonts:
             font.setFamily(family)
             break
+    else:
+        # Fallback: try any CJK-capable font
+        for family in ("Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC",
+                       "SimHei", "WenQuanYi Micro Hei"):
+            if family in available_fonts:
+                font.setFamily(family)
+                break
+
     font.setPointSize(9 if sys.platform.startswith("linux") else 10)
     app.setFont(font)
     app.setStyleSheet(STYLE)
 
+    # 加载图标
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "app_icon.ico")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+
     logger.info("=" * 55)
-    logger.info("  智能教室测控系统 — 本地 GUI 版本")
+    logger.info("  智能教室测控系统 — 本地 GUI 版本 (亮色主题)")
     logger.info("=" * 55)
 
+    # 导入新的 src 包模块
     try:
-        from detector import PersonDetector
-        from device_manager import DeviceManager
-        from sensor import TemperatureSensor
-        from light_sensor import LightSensor
-        from decision_engine import DecisionEngine
-        from data_logger import setup_file_logging
-        import config
+        from src.decision_engine import DecisionEngine
     except ImportError as e:
         print(f"模块导入失败: {e}")
+        print("请确保 src/ 目录下的模块已正确安装")
         sys.exit(1)
 
-    if config.ENABLE_FILE_LOG:
-        setup_file_logging()
+    # 平台检测：PC 模式使用 Stub 组件，避免硬件依赖
+    def _detect_platform() -> str:
+        try:
+            import lgpio  # noqa: F401
+            return "pi"
+        except ImportError:
+            pass
+        try:
+            import gpiozero  # noqa: F401
+            return "pi"
+        except ImportError:
+            pass
+        return "pc"
 
-    # 加载用户配置，覆盖 config.py 默认值
-    saved = user_settings.load()
-    config.YOLO_MODEL = saved.get("yolo_model", config.YOLO_MODEL)
-    config.DETECTION_INTERVAL = saved.get("detection_interval", config.DETECTION_INTERVAL)
+    platform = _detect_platform()
+    logger.info("运行平台: %s", "树莓派" if platform == "pi" else "PC 模拟")
 
-    logger.info("初始化系统模块…")
-    detector = PersonDetector()
-    devices  = DeviceManager()
-    sensor   = TemperatureSensor()
-    light    = LightSensor()
-    engine   = DecisionEngine(detector, devices, sensor, light)
+    if platform == "pi":
+        from src.sensor_dht import TemperatureSensor
+        from src.sensor_light import LightSensor
+        from src.servo import ServoController
+        from src.ir_controller import IRController
+        from src.detector import Detector
 
-    detector.start()
-    sensor.start()
-    light.start()
+        temperature_sensor = TemperatureSensor()
+        light_sensor = LightSensor()
+        servo = ServoController()
+        ir_controller = IRController()
+        detector = Detector()
+    else:
+        # PC 模式 Stub 类（与 main.py 一致）
+        import random as _rnd
+
+        class _StubTemp:
+            def start(self): pass
+            def stop(self): pass
+            def read_once(self): return (round(_rnd.uniform(22, 26), 1), round(_rnd.uniform(40, 60), 1))
+            def get_status(self):
+                t, h = self.read_once()
+                return {"temperature": t, "humidity": h}
+
+        class _StubLight:
+            def __init__(self): self._lux = 300.0; self._threshold = 150.0
+            def start(self): pass
+            def stop(self): pass
+            def read_lux(self): self._lux = round(_rnd.uniform(100, 500), 1); return self._lux
+            def is_dark(self): return self._lux < self._threshold
+            def set_threshold(self, v): self._threshold = float(v)
+            @property
+            def dark_threshold(self): return self._threshold
+            def get_status(self): return {"lux": self.read_lux(), "is_dark": self.is_dark(), "dark_threshold": self._threshold}
+
+        class _StubServo:
+            def __init__(self):
+                self._angle = 90
+                self._calibration = {"neutral_angle": 90, "on_offset": -30, "off_offset": 30}
+            def move_to(self, a): self._angle = max(0, min(180, a))
+            def press_on(self): logger.info("[Stub] 开灯")
+            def press_off(self): logger.info("[Stub] 关灯")
+            def calibrate(self, preset, angle):
+                if preset == "on": self._calibration["angle_on"] = angle
+                elif preset == "off": self._calibration["angle_off"] = angle
+                elif preset == "neutral": self._calibration["angle_neutral"] = angle
+            def set_neutral(self, a): self._calibration["neutral_angle"] = max(0, min(180, a)); self._angle = self._calibration["neutral_angle"]
+            def set_on_offset(self, o): self._calibration["on_offset"] = o
+            def set_off_offset(self, o): self._calibration["off_offset"] = o
+            def get_status(self): return {"current_angle": self._angle, **self._calibration}
+            def save_calibration(self): pass
+            def load_calibration(self): return self._calibration.copy()
+            def cleanup(self): pass
+
+        class _StubIR:
+            def __init__(self): self._cmds = {}
+            def start_learning(self, name, timeout=10.0): return {"success": False, "error": "PC模拟模式"}
+            def send_command(self, name): return name in self._cmds
+            def list_commands(self): return list(self._cmds.keys())
+            def delete_command(self, name): return self._cmds.pop(name, None) is not None
+            def save_commands(self): pass
+            def cleanup(self): pass
+
+        class _StubDetector:
+            def __init__(self): self._model_name = "yolov8n.pt"
+            def start(self): pass
+            def stop(self): pass
+            def get_person_count(self): return 0
+            def get_latest_frame(self): return None
+            def get_status(self): return {"person_count": 0, "running": True, "camera_backend": "stub", "model_name": self._model_name, "stream_fps": 0, "infer_ms": 0}
+            def switch_model(self, path):
+                logger.info("[模型] 切换到: %s", path)
+                self._model_name = path
+                return {"ok": True}
+
+        temperature_sensor = _StubTemp()
+        light_sensor = _StubLight()
+        servo = _StubServo()
+        ir_controller = _StubIR()
+        detector = _StubDetector()
+
+    logger.info("初始化 DecisionEngine…")
+    engine = DecisionEngine(
+        temperature_sensor=temperature_sensor,
+        light_sensor=light_sensor,
+        detector=detector,
+        servo=servo,
+        ir_controller=ir_controller,
+    )
     engine.start()
 
     def shutdown():
         logger.info("正在关闭系统…")
-        detector.stop()
-        sensor.stop()
-        light.stop()
-        engine.stop()
-        devices.all_off()
-        devices.cleanup()
+        engine.cleanup()
         logger.info("系统已安全关闭")
 
-    window = MainWindow(engine, detector)
+    window = MainWindow(engine)
     window.show()
 
     # Ctrl+C 支持

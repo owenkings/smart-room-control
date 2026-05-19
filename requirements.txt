@@ -1,21 +1,13 @@
-ultralytics>=8.0.0
-opencv-python>=4.8.0
-flask>=3.0.0
-flask-sock>=0.7.0
-numpy>=1.24.0
-requests>=2.31.0
-PyQt6>=6.4.0
-# ── 以下仅在树莓派上需要安装 ──────────────────────────────────────
-# 树莓派5 GPIO（RPi.GPIO 在 Pi5 上有兼容问题，用 rpi-lgpio 替代）:
-#   pip install rpi-lgpio
-#   pip install RPi.GPIO   # 如果 rpi-lgpio 不可用再试这个
-#
-# DHT22 温湿度传感器:
-#   pip install adafruit-circuitpython-dht
-#   sudo apt install libgpiod2   # adafruit-dht 依赖
-#
-# BH1750 光照传感器 (I2C):
-#   pip install smbus2
-#
-# CSI 摄像头（系统级安装，不能用 pip）:
-#   sudo apt install python3-picamera2
+flask
+flask-socketio
+PyQt6
+opencv-python
+ultralytics
+gpiozero
+lgpio
+smbus2
+adafruit-circuitpython-dht
+picamera2
+requests
+hypothesis
+pytest

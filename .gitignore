@@ -1,5 +1,6 @@
 # Python 环境
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -17,9 +18,14 @@ user_settings.json
 *.csv
 servo_calibration.json
 
+# 运行时数据目录（保留 .gitkeep 占位）
+data/*
+!data/.gitkeep
+
 # YOLO 模型文件（体积大，首次运行自动下载）
 *.pt
 *.onnx
+weights/
 
 # 系统文件
 .DS_Store
@@ -31,6 +37,7 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+.kiro
 
 # 临时测试脚本（树莓派调试用，不入库）
 test_gpio_info.py

@@ -1,1236 +1,421 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>智能教室测控系统</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <style>
 :root {
-  --bg:        #0d1117;
-  --bg2:       #161b22;
-  --bg3:       #1c2333;
-  --border:    #30363d;
-  --text:      #c9d1d9;
-  --text-dim:  #6e7681;
-  --amber:     #f59e0b;
-  --amber-dim: #78450a;
-  --green:     #10b981;
-  --green-dim: #064e3b;
-  --red:       #ef4444;
-  --red-dim:   #7f1d1d;
-  --blue:      #3b82f6;
-  --blue-dim:  #1e3a5f;
-  --purple:    #a78bfa;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-sans: 'Noto Sans SC', sans-serif;
-  --font-serif:'Noto Serif SC', serif;
+  --bg: #ffffff;
+  --bg-card: #f8f9fb;
+  --text: #2c3e50;
+  --text-dim: #5a6a7a;
+  --text-light: #95a5b6;
+  --border: #e8ecf0;
+  --accent: #4A90D9;
+  --accent-light: rgba(74,144,217,0.08);
+  --green: #34C759;
+  --green-light: rgba(52,199,89,0.08);
+  --red: #FF3B30;
+  --red-light: rgba(255,59,48,0.08);
+  --purple: #AF52DE;
+  --purple-light: rgba(175,82,222,0.08);
+  --amber: #FF9500;
+  --shadow: 0 1px 4px rgba(0,0,0,0.05);
+  --radius: 10px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html{font-size:14px;}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:var(--font-sans);
-  min-height:100vh;
-  background-image:
-    linear-gradient(rgba(48,54,61,0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(48,54,61,0.15) 1px, transparent 1px);
-  background-size:32px 32px;
-}
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-track{background:var(--bg2);}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+html,body{min-height:100%;overflow:auto;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;display:flex;flex-direction:column;font-size:13px;min-height:100vh;}
 
-/* ── HEADER ── */
-.header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 24px;
-  background:var(--bg2);
-  border-bottom:1px solid var(--border);
-  position:sticky;top:0;z-index:100;
-  backdrop-filter:blur(8px);
-}
-.header-left{display:flex;align-items:center;gap:16px;}
-.logo-mark{
-  width:36px;height:36px;border-radius:8px;
-  background:linear-gradient(135deg,var(--amber),#d97706);
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;font-weight:700;color:#000;
-  font-family:var(--font-serif);
-  box-shadow:0 0 12px rgba(245,158,11,0.4);
-}
-.header-title{
-  font-family:var(--font-serif);
-  font-size:16px;font-weight:700;
-  color:#e6edf3;letter-spacing:0.05em;
-}
-.header-sub{font-size:11px;color:var(--text-dim);margin-top:2px;font-family:var(--font-mono);}
-.header-right{display:flex;align-items:center;gap:20px;}
-.sys-clock{
-  font-family:var(--font-mono);font-size:13px;
-  color:var(--amber);letter-spacing:0.08em;
-}
-.uptime{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);}
+/* Header */
+.header{background:var(--bg);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.header-left{display:flex;align-items:center;gap:8px;}
+.logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;}
+.header-title{font-size:15px;font-weight:600;}
+.header-sub{font-size:10px;color:var(--text-light);}
+.header-right{display:flex;align-items:center;gap:12px;}
+.sys-clock{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;}
+.mode-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.mode-btn{padding:4px 14px;border:none;cursor:pointer;font-size:11px;font-weight:600;background:transparent;color:var(--text-dim);transition:all .2s;}
+.mode-btn.active{background:var(--accent);color:#fff;}
+.mode-btn:hover:not(.active){background:var(--accent-light);}
 
-/* ── MODE TOGGLE ── */
-.mode-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-.mode-btn{
-  padding:6px 18px;border:none;cursor:pointer;
-  font-family:var(--font-mono);font-size:12px;font-weight:600;
-  background:transparent;color:var(--text-dim);
-  transition:all .2s;letter-spacing:0.05em;
-}
-.mode-btn.active-auto{background:var(--green);color:#000;}
-.mode-btn.active-manual{background:var(--amber);color:#000;}
-.mode-btn:hover:not(.active-auto):not(.active-manual){background:var(--bg3);color:var(--text);}
+/* Main */
+.main-layout{flex:1;display:flex;gap:12px;padding:10px 14px;min-height:0;overflow:hidden;align-items:flex-start;justify-content:center;width:min(1600px,100%);margin:0 auto;}
+.left-panel{flex:0 0 66.666%;max-width:66.666%;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;}
+.right-panel{flex:0 0 33.334%;max-width:340px;overflow-y:auto;overflow-x:hidden;padding-right:4px;max-height:calc(100vh - 72px);}
+.right-panel::-webkit-scrollbar{width:4px;}
+.right-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.right-inner{display:flex;flex-direction:column;gap:10px;padding-bottom:10px;}
 
-/* ── LAYOUT ── */
-.layout{
-  display:grid;
-  grid-template-columns:260px 1fr 280px;
-  grid-template-rows:auto 1fr auto;
-  gap:12px;
-  padding:12px 16px;
-  min-height:calc(100vh - 61px);
-}
-.col-left{display:flex;flex-direction:column;gap:12px;}
-.col-center{display:flex;flex-direction:column;gap:12px;}
-.col-right{display:flex;flex-direction:column;gap:12px;}
-.row-bottom{grid-column:1/-1;}
+/* Card */
+.card{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);}
+.card-header{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(74,144,217,0.03);}
+.card-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.card-title .icon{font-size:15px;}
+.card-badge{font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;background:var(--accent-light);color:var(--accent);}
+.card-body{padding:10px 12px;}
 
-/* ── CARD ── */
-.card{
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:10px;
-  overflow:hidden;
-}
-.card-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 14px 8px;
-  border-bottom:1px solid var(--border);
-}
-.card-title{
-  font-family:var(--font-serif);
-  font-size:13px;font-weight:700;
-  color:#e6edf3;letter-spacing:0.04em;
-  display:flex;align-items:center;gap:8px;
-}
-.card-title .accent-line{
-  width:3px;height:14px;border-radius:2px;
-}
-.card-body{padding:12px 14px;}
+/* Video */
+.video-card{flex:0 0 auto;display:flex;flex-direction:column;min-height:0;align-self:flex-start;transform:scale(1.5);transform-origin:top left;width:66.666%;}
+.video-card .card-body{flex:0 0 auto;display:flex;flex-direction:column;padding:6px;}
+.video-container{position:relative;background:#1a1a2e;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto;width:100%;}
+.video-container img{display:block;width:100%;height:auto;max-width:100%;object-fit:contain;}
+.video-status{position:absolute;top:8px;right:8px;font-size:9px;background:rgba(0,0,0,.6);color:var(--green);padding:2px 8px;border-radius:4px;}
 
-/* ── BADGE ── */
-.badge{
-  font-family:var(--font-mono);font-size:10px;font-weight:600;
-  padding:2px 7px;border-radius:4px;letter-spacing:0.06em;
-}
-.badge-servo{background:rgba(167,139,250,0.15);color:var(--purple);border:1px solid rgba(167,139,250,0.3);}
-.badge-ir{background:rgba(59,130,246,0.15);color:var(--blue);border:1px solid rgba(59,130,246,0.3);}
-.badge-relay{background:rgba(245,158,11,0.15);color:var(--amber);border:1px solid rgba(245,158,11,0.3);}
+/* Info row */
+.info-row{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.info-row .card{flex:1 1 220px;min-width:0;}
 
-/* ── STATUS DOT ── */
-.dot{
-  width:8px;height:8px;border-radius:50%;display:inline-block;
-  flex-shrink:0;
-}
-.dot-on{background:var(--green);box-shadow:0 0 6px var(--green);}
-.dot-off{background:var(--text-dim);}
-.dot-pulse{animation:pulse 2s infinite;}
-@keyframes pulse{
-  0%,100%{box-shadow:0 0 4px var(--green);}
-  50%{box-shadow:0 0 12px var(--green),0 0 20px rgba(16,185,129,0.3);}
-}
+/* Data */
+.data-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);}
+.data-row:last-child{border-bottom:none;}
+.data-label{font-size:12px;color:var(--text-dim);}
+.data-value{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;}
+.data-unit{font-size:10px;color:var(--text-light);margin-left:2px;}
 
-/* ── SENSOR ROW ── */
-.sensor-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:8px 0;border-bottom:1px solid rgba(48,54,61,0.6);
-}
-.sensor-row:last-child{border-bottom:none;}
-.sensor-label{font-size:12px;color:var(--text-dim);}
-.sensor-value{
-  font-family:var(--font-mono);font-size:14px;font-weight:600;
-  transition:color .3s;
-}
-.sensor-unit{font-size:10px;color:var(--text-dim);margin-left:2px;}
+/* Person */
+.person-count{text-align:center;padding:6px 0;}
+.person-count .number{font-size:36px;font-weight:700;color:var(--accent);line-height:1;}
+.person-count .label{font-size:10px;color:var(--text-light);margin-top:2px;}
 
-/* ── BIG NUMBER ── */
-.big-number{
-  font-family:var(--font-mono);
-  font-size:72px;font-weight:600;
-  line-height:1;text-align:center;
-  padding:16px 0 8px;
-  transition:all .3s;
-}
-.big-number.has-person{color:var(--green);text-shadow:0 0 30px rgba(16,185,129,0.4);}
-.big-number.no-person{color:var(--text-dim);}
-.person-label{text-align:center;font-size:11px;color:var(--text-dim);font-family:var(--font-mono);letter-spacing:0.1em;padding-bottom:12px;}
+/* Buttons */
+.btn-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.btn{padding:5px 10px;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:500;transition:all .15s;text-align:center;}
+.btn:active{transform:scale(.96);}
+.btn-flex{flex:1;}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:#3d7ec4;}
+.btn-green{background:var(--green-light);color:var(--green);border:1px solid rgba(52,199,89,.25);}
+.btn-red{background:var(--red-light);color:var(--red);border:1px solid rgba(255,59,48,.25);}
+.btn-purple{background:var(--purple-light);color:var(--purple);border:1px solid rgba(175,82,222,.25);}
+.btn-outline{background:#fff;color:var(--text-dim);border:1px solid var(--border);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:4px 7px;font-size:10px;}
 
-/* ── FILTER BAR ── */
-.filter-bar{
-  display:flex;gap:4px;margin-top:8px;
-}
-.filter-seg{
-  height:4px;flex:1;border-radius:2px;background:var(--bg3);
-  transition:background .3s;
-}
-.filter-seg.hit{background:var(--green);}
-.filter-seg.miss{background:var(--red);}
-.filter-info{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:6px;text-align:center;}
-.model-preset-btn{
-  padding:5px 10px;font-size:11px;font-weight:bold;cursor:pointer;border-radius:5px;
-  background:var(--bg3);color:var(--text-dim);border:1px solid var(--border);
-  transition:all .15s;
-}
-.model-preset-btn:hover{background:var(--green);color:#0a0f1e;border-color:var(--green);}
-.model-preset-btn.active{background:var(--green);color:#0a0f1e;border-color:var(--green);}
+/* Input */
+.input{padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;color:var(--text);outline:none;}
+.input:focus{border-color:var(--accent);}
+select.input{cursor:pointer;}
 
-/* ── VIDEO ── */
-.video-wrap{
-  position:relative;background:#000;border-radius:8px;overflow:hidden;
-  aspect-ratio:4/3;
-}
-.video-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
-.video-overlay{
-  position:absolute;inset:0;pointer-events:none;
-}
-.scan-line{
-  position:absolute;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,rgba(16,185,129,0.6),transparent);
-  animation:scan 4s linear infinite;
-  opacity:0.5;
-}
-@keyframes scan{from{top:-2px;}to{top:100%;}}
-.corner{position:absolute;width:20px;height:20px;border-color:var(--amber);border-style:solid;opacity:0.7;}
-.corner-tl{top:8px;left:8px;border-width:2px 0 0 2px;}
-.corner-tr{top:8px;right:8px;border-width:2px 2px 0 0;}
-.corner-bl{bottom:8px;left:8px;border-width:0 0 2px 2px;}
-.corner-br{bottom:8px;right:8px;border-width:0 2px 2px 0;}
-.video-status{
-  position:absolute;top:10px;left:50%;transform:translateX(-50%);
-  font-family:var(--font-mono);font-size:10px;
-  background:rgba(0,0,0,0.6);color:var(--green);
-  padding:3px 10px;border-radius:4px;letter-spacing:0.1em;
-  border:1px solid rgba(16,185,129,0.3);
-}
+/* Checkbox */
+.chk-row{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 0;}
+.chk-row input[type="checkbox"]{accent-color:var(--accent);width:14px;height:14px;}
 
-/* ── DEVICE CONTROL ── */
-.device-card{
-  background:var(--bg3);border-radius:8px;
-  padding:12px;margin-bottom:8px;
-  border:1px solid var(--border);
-  transition:border-color .3s;
-}
-.device-card:last-child{margin-bottom:0;}
-.device-card.active{border-color:rgba(16,185,129,0.4);}
-.device-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.device-name{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;}
-.device-state{font-family:var(--font-mono);font-size:11px;}
-.device-state.on{color:var(--green);}
-.device-state.off{color:var(--text-dim);}
-.btn-row{display:flex;gap:6px;}
-.ctrl-btn{
-  flex:1;padding:7px 0;border:none;border-radius:6px;
-  cursor:pointer;font-family:var(--font-mono);font-size:12px;font-weight:600;
-  letter-spacing:0.04em;transition:all .15s;
-}
-.ctrl-btn:active{transform:scale(0.96);}
-.btn-on{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.4);}
-.btn-on:hover{background:rgba(16,185,129,0.25);}
-.btn-off{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
-.btn-off:hover{background:rgba(239,68,68,0.2);}
-.btn-cool{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.3);}
-.btn-cool:hover{background:rgba(59,130,246,0.22);}
-.btn-heat{background:rgba(245,158,11,0.12);color:var(--amber);border:1px solid rgba(245,158,11,0.3);}
-.btn-heat:hover{background:rgba(245,158,11,0.22);}
-.btn-learn{background:rgba(167,139,250,0.12);color:var(--purple);border:1px solid rgba(167,139,250,0.3);}
-.btn-learn:hover{background:rgba(167,139,250,0.22);}
-.feedback-note{font-size:10px;color:var(--text-dim);margin-top:6px;font-style:italic;}
-.servo-calib{
-  margin-top:10px;padding-top:10px;border-top:1px solid var(--border);
-}
-.servo-angle-row,.servo-saved-row{
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:11px;color:var(--text-dim);margin-bottom:6px;
-}
-.servo-angle-row strong,.servo-saved-row strong{
-  color:var(--green);font-family:var(--font-mono);font-size:12px;
-}
-.servo-range{
-  width:100%;accent-color:var(--purple);cursor:pointer;margin:6px 0;
-}
-.servo-mini-btn{
-  flex:1;padding:5px 0;border:none;border-radius:6px;cursor:pointer;
-  background:var(--bg2);color:var(--text);border:1px solid var(--border);
-  font-family:var(--font-mono);font-size:11px;
-}
-.servo-mini-btn:hover{border-color:var(--purple);color:var(--purple);}
-.servo-save-btn{
-  flex:1;padding:6px 0;border:none;border-radius:6px;cursor:pointer;
-  font-family:var(--font-mono);font-size:11px;font-weight:600;
-}
-.servo-save-btn.neutral{
-  background:rgba(167,139,250,0.12);color:var(--purple);border:1px solid rgba(167,139,250,0.3);
-}
-.servo-save-btn.neutral:hover{background:rgba(167,139,250,0.22);}
+/* IR list */
+.cmd-list{max-height:80px;overflow-y:auto;margin-top:4px;}
+.cmd-item{display:flex;align-items:center;justify-content:space-between;padding:4px 8px;border-radius:5px;margin-bottom:3px;background:#fff;border:1px solid var(--border);font-size:11px;}
+.cmd-btn{padding:2px 6px;border-radius:4px;border:none;cursor:pointer;font-size:9px;font-weight:500;}
+.cmd-btn-send{background:var(--accent-light);color:var(--accent);}
+.cmd-btn-del{background:var(--red-light);color:var(--red);}
 
-/* ── IR LEARN ── */
-.ir-learn{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
-.ir-learn label{font-size:11px;color:var(--text-dim);display:block;margin-bottom:6px;}
-.ir-row{display:flex;gap:6px;align-items:center;}
-.ir-select{
-  flex:1;background:var(--bg2);color:var(--text);
-  border:1px solid var(--border);border-radius:6px;
-  padding:6px 8px;font-size:12px;font-family:var(--font-sans);
-}
-.ir-status{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:6px;}
-.ir-status.learning{color:var(--amber);animation:blink 1s infinite;}
-.ir-status.success{color:var(--green);}
-.ir-status.fail{color:var(--red);}
-@keyframes blink{50%{opacity:0.3;}}
+/* Calib */
+.calib-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+.calib-row .val{font-weight:600;color:var(--accent);}
 
-/* ── LOG ── */
-.log-stream{
-  max-height:140px;overflow-y:auto;
-  display:flex;flex-direction:column;gap:2px;
-}
-.log-entry{
-  display:flex;gap:10px;align-items:baseline;
-  padding:4px 6px;border-radius:4px;
-  font-family:var(--font-mono);font-size:11px;
-  animation:slideIn .2s ease;
-  border-left:2px solid transparent;
-}
-.log-entry:hover{background:var(--bg3);}
-.log-entry.auto{border-left-color:var(--green);}
-.log-entry.manual{border-left-color:var(--amber);}
-.log-time{color:var(--text-dim);flex-shrink:0;font-size:10px;}
-.log-text{color:var(--text);}
-@keyframes slideIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
+/* Inline form */
+.inline-form{display:flex;gap:5px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.inline-form label{font-size:11px;color:var(--text-dim);white-space:nowrap;flex:0 0 auto;}
+.inline-form .input{flex:1;min-width:0;}
+.calib-form{gap:4px;}
+.calib-form .calib-input{flex:0 0 54px; width:54px; min-width:54px; box-sizing:border-box;}
+.calib-form .btn{flex:0 0 auto;}
 
-/* ── MINI CHART (lux sparkline) ── */
-.sparkline-wrap{margin-top:8px;}
-.sparkline-label{font-size:10px;color:var(--text-dim);margin-bottom:4px;font-family:var(--font-mono);}
-canvas.sparkline{width:100%;height:36px;display:block;}
+/* Msg */
+.msg{font-size:10px;min-height:14px;margin-top:2px;}
+.msg-ok{color:var(--green);}
+.msg-err{color:var(--red);}
+.msg-warn{color:var(--amber);}
 
-/* ── RESPONSIVE ── */
-@media(max-width:1100px){
-  .layout{grid-template-columns:220px 1fr 240px;}
-}
-@media(max-width:800px){
-  .layout{grid-template-columns:1fr;grid-template-rows:auto;}
-  .col-left,.col-right{flex-direction:row;flex-wrap:wrap;}
-  .col-left .card,.col-right .card{flex:1;min-width:200px;}
-}
+/* Status dot */
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.status-dot.online{background:var(--green);}
+.status-dot.offline{background:var(--text-light);}
+
+/* Section label */
+.section-label{font-size:10px;color:var(--text-light);margin-bottom:4px;padding-left:2px;}
 </style>
 </head>
 <body>
 
-<!-- ══ HEADER ══ -->
 <header class="header">
   <div class="header-left">
-    <div class="logo-mark">控</div>
-    <div>
-      <div class="header-title">智能教室 · 网络化测控系统</div>
-      <div class="header-sub">YOLO · SERVO · IR · RELAY · DHT22 · BH1750</div>
-    </div>
+    <div class="logo">控</div>
+    <div><div class="header-title">智能教室测控系统</div><div class="header-sub">网络化测控 · 实时监控</div></div>
   </div>
   <div class="header-right">
-    <div>
-      <div class="sys-clock" id="clock">--:--:--</div>
-      <div class="uptime" id="uptime">运行中...</div>
-    </div>
+    <span class="sys-clock" id="clock">--:--:--</span>
+    <span class="status-dot offline" id="wsDot"></span>
+    <span id="wsLabel" style="font-size:10px;color:var(--text-light);">连接中</span>
     <div class="mode-toggle">
-      <button class="mode-btn" id="btnAuto" onclick="setMode('AUTO')">AUTO</button>
-      <button class="mode-btn" id="btnManual" onclick="setMode('MANUAL')">MANUAL</button>
+      <button class="mode-btn active" id="btnAuto" onclick="setMode('AUTO')">自动</button>
+      <button class="mode-btn" id="btnManual" onclick="setMode('MANUAL')">手动</button>
     </div>
   </div>
 </header>
 
-<!-- ══ MAIN LAYOUT ══ -->
-<div class="layout">
+<div class="main-layout">
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="card video-card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📹</span> 实时视频</div>
+        <div class="card-badge" id="videoStatus">● LIVE</div>
+      </div>
+      <div class="card-body"><div class="video-container"><img id="videoImg" alt="视频流"></div></div>
+    </div>
+    <div class="info-row">
+      <div class="card">
+        <div class="card-header"><div class="card-title"><span class="icon">👤</span> 人员</div><span class="card-badge" id="modelBadge">yolov8n</span></div>
+        <div class="card-body"><div class="person-count"><div class="number" id="personCount">0</div><div class="label">检测人数</div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><span class="icon">🌡️</span> 环境</div></div>
+        <div class="card-body">
+          <div class="data-row"><span class="data-label">温度</span><span><span class="data-value" id="temperature">--</span><span class="data-unit">°C</span></span></div>
+          <div class="data-row"><span class="data-label">湿度</span><span><span class="data-value" id="humidity">--</span><span class="data-unit">%</span></span></div>
+          <div class="data-row"><span class="data-label">光照</span><span><span class="data-value" id="lux">--</span><span class="data-unit">lux</span></span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><span class="icon">📊</span> 性能</div></div>
+        <div class="card-body">
+          <div class="data-row"><span class="data-label">帧率</span><span><span class="data-value" id="streamFps">--</span><span class="data-unit">fps</span></span></div>
+          <div class="data-row"><span class="data-label">推理</span><span><span class="data-value" id="inferMs">--</span><span class="data-unit">ms</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- ── LEFT COL ── -->
-  <div class="col-left">
+  <!-- RIGHT (scrollable) -->
+  <div class="right-panel">
+    <div class="right-inner">
 
-    <!-- 人员检测 -->
+    <!-- Servo -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--green)"></span>
-          人员检测
-        </div>
-        <span class="badge badge-servo" id="modelBadge"
-          style="background:rgba(16,185,129,0.1);color:var(--green);border-color:rgba(16,185,129,0.3);
-                 max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-          title="">yolov8n</span>
-      </div>
+      <div class="card-header"><div class="card-title"><span class="icon">⚙️</span> 舵机控制</div></div>
       <div class="card-body">
-        <div class="big-number no-person" id="personCount">0</div>
-        <div class="person-label">PERSONS DETECTED</div>
-        <div class="sensor-row">
-          <span class="sensor-label">原始检测</span>
-          <span class="sensor-value" id="rawStatus" style="font-size:12px;">—</span>
+        <div class="btn-row" style="margin-bottom:8px;">
+          <button class="btn btn-green btn-flex" onclick="servoAction('on')">💡 开灯</button>
+          <button class="btn btn-red btn-flex" onclick="servoAction('off')">🌙 关灯</button>
         </div>
-        <div class="sensor-row">
-          <span class="sensor-label">稳定状态</span>
-          <span class="sensor-value" id="stableStatus" style="font-size:12px;">—</span>
+        <div class="calib-row"><span>当前角度</span><span class="val" id="servoAngle">90°</span></div>
+        <input type="range" id="servoSlider" min="0" max="180" value="90" style="width:100%;accent-color:var(--accent);margin-bottom:6px;"
+          oninput="document.getElementById('servoAngle').textContent=this.value+'°'" onchange="servoMove(this.value)">
+        <div class="btn-row">
+          <button class="btn btn-outline btn-sm" onclick="servoNudge(-5)">-5°</button>
+          <button class="btn btn-outline btn-sm" onclick="servoNudge(-1)">-1°</button>
+          <button class="btn btn-outline btn-sm" onclick="servoNudge(1)">+1°</button>
+          <button class="btn btn-outline btn-sm" onclick="servoNudge(5)">+5°</button>
+          <span style="width:1px;height:16px;background:var(--border);margin:0 2px;"></span>
+          <button class="btn btn-green btn-sm" onclick="servoCalibrate('on')">记开灯</button>
+          <button class="btn btn-red btn-sm" onclick="servoCalibrate('off')">记关灯</button>
+          <button class="btn btn-purple btn-sm" onclick="servoCalibrate('neutral')">记中立</button>
         </div>
-        <div class="filter-bar" id="filterBar">
-          <div class="filter-seg"></div><div class="filter-seg"></div>
-          <div class="filter-seg"></div><div class="filter-seg"></div>
-          <div class="filter-seg"></div>
-        </div>
-        <div class="filter-info" id="filterInfo">命中 0 / 未检测 0</div>
-
-        <!-- 检测间隔调节 -->
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-size:12px;color:var(--text-dim);">检测间隔</span>
-            <span style="font-size:13px;font-weight:bold;color:var(--green);" id="intervalLabel">2.0 秒</span>
-          </div>
-          <input type="range" id="intervalSlider" min="0.5" max="10" step="0.5" value="2"
-            style="width:100%;accent-color:var(--green);cursor:pointer;"
-            oninput="onIntervalChange(this.value)"
-            onchange="applyInterval(this.value)">
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:2px;">
-            <span>0.5s 精准</span><span>10s 省资源</span>
-          </div>
-          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">
-            拖动滑块调整YOLO检测频率，不影响画面流畅度
-          </div>
-        </div>
+        <div class="section-label" style="margin-top:8px;">偏移量校准</div>
+        <div class="inline-form calib-form"><label>中位:</label><input type="number" class="input calib-input" id="inNeutral" value="90" min="0" max="180"><label>开灯偏移:</label><input type="number" class="input calib-input" id="inOnOff" value="-30" min="-90" max="90"><label>关灯偏移:</label><input type="number" class="input calib-input" id="inOffOff" value="30" min="-90" max="90"><button class="btn btn-accent btn-sm" onclick="saveOffsets()">保存</button></div>
       </div>
     </div>
 
-    <!-- 性能监控 & 模型切换 -->
+    <!-- Light conditions -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--amber)"></span>
-          性能监控 & 模型
-        </div>
-        <span class="badge" id="loadingBadge"
-          style="display:none;background:rgba(240,165,0,0.15);color:var(--amber);border-color:rgba(240,165,0,0.3);">
-          加载中…
-        </span>
-      </div>
+      <div class="card-header"><div class="card-title"><span class="icon">💡</span> 灯光条件</div><button class="btn btn-accent btn-sm" onclick="saveConditions()">保存</button></div>
       <div class="card-body">
-        <div class="sensor-row">
-          <span class="sensor-label">推流帧率</span>
-          <span class="sensor-value" id="streamFps" style="font-family:var(--font-mono);">— fps</span>
-        </div>
-        <div class="sensor-row">
-          <span class="sensor-label">单帧推理耗时</span>
-          <span class="sensor-value" id="inferMs" style="font-family:var(--font-mono);">— ms</span>
-        </div>
-        <div class="sensor-row">
-          <span class="sensor-label">推理帧率</span>
-          <span class="sensor-value" id="inferFps" style="font-family:var(--font-mono);">— fps</span>
-        </div>
-        <div class="sensor-row" style="border-bottom:none;">
-          <span class="sensor-label">建议检测间隔</span>
-          <span class="sensor-value" id="suggestInterval" style="color:var(--amber);font-family:var(--font-mono);">—</span>
-        </div>
-        <div style="font-size:10px;color:var(--text-dim);margin-top:6px;line-height:1.5;">
-          建议间隔 = 推理耗时 × 1.5，确保每次推理完成后再触发下一次
-        </div>
-
-        <!-- 模型切换 -->
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-          <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">切换模型</div>
-          <!-- 模型分组选择 -->
-          <div style="margin-bottom:6px;">
-            <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">
-              YOLOv8 &nbsp;·&nbsp; 经典稳定，兼容性最好
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
-              <button class="model-preset-btn" onclick="selectPreset('yolov8n.pt')" title="Nano 3.2M params · 最快">v8n</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolov8s.pt')" title="Small 11.2M params · 快">v8s</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolov8m.pt')" title="Medium 25.9M params · 均衡">v8m</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolov8l.pt')" title="Large 43.7M params · 精准">v8l</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolov8x.pt')" title="XLarge 68.2M params · 最精准">v8x</button>
-            </div>
-            <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">
-              YOLO11 &nbsp;·&nbsp; 精度更高，参数更少
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
-              <button class="model-preset-btn" onclick="selectPreset('yolo11n.pt')" title="Nano 2.6M params · 最快">v11n</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo11s.pt')" title="Small 9.4M params · 快">v11s</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo11m.pt')" title="Medium 20.1M params · 均衡">v11m</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo11l.pt')" title="Large 25.3M params · 精准">v11l</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo11x.pt')" title="XLarge 56.9M params · 最精准">v11x</button>
-            </div>
-            <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">
-              YOLO26 &nbsp;·&nbsp; 最新一代，精度最高（首次使用自动下载）
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px;">
-              <button class="model-preset-btn" onclick="selectPreset('yolo26n.pt')" title="Nano 2.4M params · 最快">v26n</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo26s.pt')" title="Small 9.5M params · 快">v26s</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo26m.pt')" title="Medium 20.4M params · 均衡">v26m</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo26l.pt')" title="Large 24.8M params · 精准">v26l</button>
-              <button class="model-preset-btn" onclick="selectPreset('yolo26x.pt')" title="XLarge 55.7M params · 最精准">v26x</button>
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <input type="text" id="modelPathInput"
-              placeholder="模型名或文件路径，如 yolov8s.pt"
-              style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);
-                     padding:7px 10px;border-radius:6px;font-size:12px;outline:none;">
-            <button onclick="switchModel()"
-              style="padding:7px 14px;background:var(--green);color:#0a0f1e;border:none;
-                     border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;white-space:nowrap;">
-              切换
-            </button>
-          </div>
-          <div id="modelSwitchMsg" style="font-size:11px;color:var(--text-dim);margin-top:6px;min-height:16px;"></div>
-        </div>
+        <div class="chk-row"><input type="checkbox" id="chkTime" checked><label for="chkTime">时间条件（日出日落判定）</label></div>
+        <div class="chk-row"><input type="checkbox" id="chkLight" checked><label for="chkLight">光照条件（低于阈值判定）</label></div>
+        <div class="chk-row"><input type="checkbox" id="chkPresence" checked><label for="chkPresence">人员在场条件（检测判定）</label></div>
+        <div class="msg" id="msgCond"></div>
       </div>
     </div>
 
-    <!-- 环境传感器 -->
+    <!-- Light threshold + Time fallback (combined) -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--blue)"></span>
-          环境传感器
-        </div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);">DHT22 · BH1750</span>
-      </div>
+      <div class="card-header"><div class="card-title"><span class="icon">☀️</span> 光照 & 时间配置</div></div>
       <div class="card-body">
-        <div class="sensor-row">
-          <span class="sensor-label">🌡 温度</span>
-          <span>
-            <span class="sensor-value" id="temperature">--</span>
-            <span class="sensor-unit">°C</span>
-          </span>
-        </div>
-        <div class="sensor-row">
-          <span class="sensor-label">💧 湿度</span>
-          <span>
-            <span class="sensor-value" id="humidity">--</span>
-            <span class="sensor-unit">%</span>
-          </span>
-        </div>
-        <div class="sensor-row">
-          <span class="sensor-label">☀ 光照</span>
-          <span>
-            <span class="sensor-value" id="lux">--</span>
-            <span class="sensor-unit">lux</span>
-          </span>
-        </div>
-        <div class="sparkline-wrap">
-          <div class="sparkline-label">光照趋势 (近30次)</div>
-          <canvas class="sparkline" id="luxChart" height="36"></canvas>
-        </div>
+        <div class="inline-form"><label>光照阈值:</label><input type="number" class="input" id="inThreshold" value="150" min="0" max="65535" step="0.1" style="width:70px;"><span style="font-size:10px;color:var(--text-light);">lux</span><button class="btn btn-accent btn-sm" onclick="saveThreshold()">保存</button><button class="btn btn-outline btn-sm" onclick="useCurrent()">用当前值</button></div>
+        <div class="inline-form"><label>白天时段:</label><input type="text" class="input" id="inTimeStart" value="06:00" style="width:52px;"><span style="font-size:11px;">~</span><input type="text" class="input" id="inTimeEnd" value="18:00" style="width:52px;"><button class="btn btn-accent btn-sm" onclick="saveTimeFallback()">保存</button></div>
+        <div class="msg" id="msgThreshold"></div>
       </div>
     </div>
 
-  </div><!-- /col-left -->
-
-  <!-- ── CENTER COL ── -->
-  <div class="col-center">
-
-    <!-- 视频流 -->
+    <!-- AC thresholds -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--amber)"></span>
-          实时监控画面
-          <span id="simTag" style="display:none;font-size:11px;background:#f0a500;color:#1a1a2e;padding:2px 8px;border-radius:4px;margin-left:8px;font-weight:bold;">模拟模式 · 无摄像头</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span id="streamBackendTag" style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);"></span>
-          <span class="dot dot-on dot-pulse"></span>
-          <span style="font-family:var(--font-mono);font-size:10px;color:var(--green);">LIVE</span>
-        </div>
-      </div>
-      <div class="card-body" style="padding:10px;">
-        <div class="video-wrap">
-          <!-- WebSocket 推流（低延迟），降级时显示 MJPEG img -->
-          <img id="videoImg" alt="实时视频流" style="width:100%;border-radius:4px;">
-          <div class="video-overlay">
-            <div class="scan-line"></div>
-            <div class="corner corner-tl"></div>
-            <div class="corner corner-tr"></div>
-            <div class="corner corner-bl"></div>
-            <div class="corner corner-br"></div>
-            <div class="video-status" id="videoStatus">● REC</div>
-          </div>
-        </div>
-        <div id="streamModeHint"
-          style="font-size:10px;color:var(--text-dim);text-align:center;margin-top:4px;">
-          正在连接视频流…
-        </div>
-      </div>
-    </div>
-
-    <!-- 操作日志 -->
-    <div class="card" style="flex:1;">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--text-dim)"></span>
-          操作日志
-        </div>
-        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);" id="logCount">0 条</span>
-      </div>
+      <div class="card-header"><div class="card-title"><span class="icon">❄️</span> 温度阈值</div><button class="btn btn-accent btn-sm" onclick="saveACThresholds()">保存</button></div>
       <div class="card-body">
-        <div class="log-stream" id="logList"></div>
+        <div class="inline-form"><label>制冷 &gt;</label><input type="number" class="input" id="inCooling" value="28" min="15" max="40" step="0.1" style="width:55px;"><span style="font-size:10px;">°C</span><span style="margin:0 6px;color:var(--border);">|</span><label>制热 &lt;</label><input type="number" class="input" id="inHeating" value="18" min="0" max="30" step="0.1" style="width:55px;"><span style="font-size:10px;">°C</span></div>
+        <div class="msg" id="msgAC"></div>
       </div>
     </div>
 
-  </div><!-- /col-center -->
-
-  <!-- ── RIGHT COL ── -->
-  <div class="col-right">
-
-    <!-- 灯光控制 -->
+    <!-- IR -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--purple)"></span>
-          灯光控制
-        </div>
-        <span class="badge badge-servo">SERVO</span>
-      </div>
+      <div class="card-header"><div class="card-title"><span class="icon">📡</span> 红外控制</div></div>
       <div class="card-body">
-        <div class="device-card" id="lightCard">
-          <div class="device-top">
-            <div class="device-name">
-              <span class="dot dot-off" id="lightDot"></span>
-              舵机按压开关
-            </div>
-            <span class="device-state off" id="lightStatus">OFF</span>
-          </div>
-          <div class="btn-row">
-            <button class="ctrl-btn btn-on" onclick="control('light','on')">开 灯</button>
-            <button class="ctrl-btn btn-off" onclick="control('light','off')">关 灯</button>
-          </div>
-          <div class="sensor-row" style="margin-top:8px;">
-            <span class="sensor-label" style="font-size:11px;">光敏反馈</span>
-            <span class="sensor-value" id="lightActual" style="font-size:11px;">—</span>
-          </div>
-          <div class="feedback-note">舵机按压后光敏电阻闭环确认</div>
-
-          <div class="servo-calib">
-            <div class="servo-angle-row">
-              <span>当前角度</span>
-              <strong id="servoCurrentAngle">90°</strong>
-            </div>
-            <input type="range" id="servoAngleSlider" class="servo-range" min="0" max="180" step="1" value="90"
-              oninput="document.getElementById('servoCurrentAngle').textContent = this.value + '°';"
-              onchange="servoMove(this.value)">
-            <div class="btn-row" style="margin-bottom:6px;">
-              <button class="servo-mini-btn" onclick="servoNudge(-5)">-5°</button>
-              <button class="servo-mini-btn" onclick="servoNudge(-1)">-1°</button>
-              <button class="servo-mini-btn" onclick="servoNudge(1)">+1°</button>
-              <button class="servo-mini-btn" onclick="servoNudge(5)">+5°</button>
-              <button class="servo-mini-btn" onclick="servoMoveNeutral()">中立</button>
-            </div>
-            <div class="btn-row" style="margin-bottom:6px;">
-              <button class="ctrl-btn btn-on" onclick="servoSavePreset('on')">记为开灯按压角</button>
-              <button class="ctrl-btn btn-off" onclick="servoSavePreset('off')">记为关灯按压角</button>
-              <button class="servo-save-btn neutral" onclick="servoSavePreset('neutral')">记为中立回位角</button>
-            </div>
-            <div class="servo-saved-row">
-              <span>已保存</span>
-              <strong id="servoSavedAngles">开灯按压60° / 关灯按压120° / 中立回位90°</strong>
-            </div>
-            <div class="ir-row" style="margin-top:6px;">
-              <input type="number" id="servoDuration" min="0.1" max="5" step="0.1" value="0.5"
-                style="flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);
-                       padding:6px 8px;border-radius:6px;font-size:12px;outline:none;">
-              <button class="ctrl-btn btn-learn" style="flex:none;padding:6px 12px;" onclick="saveServoDuration()">保存时长</button>
-            </div>
-            <div class="ir-status" id="servoCalibStatus">SG90 每次动作都会执行: 中立 -> 按压角 -> 中立，角度范围固定为 0° - 180°</div>
-          </div>
-        </div>
+        <div style="font-size:10px;color:var(--text-light);margin-bottom:4px;">输入命令名 → 点击学习 → 10秒内对准接收器按遥控器按键</div>
+        <div class="inline-form"><input type="text" class="input" id="irNameInput" placeholder="命令名称（如 ac_on）"><button class="btn btn-accent btn-sm" onclick="irLearn()">学习</button></div>
+        <div class="msg" id="irStatus"></div>
+        <div class="cmd-list" id="irCmdList"><div style="text-align:center;color:var(--text-light);padding:8px 0;font-size:11px;">暂无已学习命令</div></div>
       </div>
     </div>
 
-    <!-- 电源控制 -->
+    <!-- Model -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--amber)"></span>
-          电源控制
-        </div>
-        <span class="badge badge-relay">RELAY</span>
-      </div>
+      <div class="card-header"><div class="card-title"><span class="icon">🧠</span> 模型切换</div></div>
       <div class="card-body">
-        <div class="device-card" id="powerCard">
-          <div class="device-top">
-            <div class="device-name">
-              <span class="dot dot-off" id="powerDot"></span>
-              继电器通断
-            </div>
-            <span class="device-state off" id="powerStatus">OFF</span>
-          </div>
-          <div class="btn-row">
-            <button class="ctrl-btn btn-on" onclick="control('power','on')">通 电</button>
-            <button class="ctrl-btn btn-off" onclick="control('power','off')">断 电</button>
-          </div>
+        <div class="inline-form">
+          <select class="input" id="modelSelect" style="flex:1;">
+            <option value="yolov8n.pt">v8n Nano 3.2M</option>
+            <option value="yolov8s.pt">v8s Small 11.2M</option>
+            <option value="yolov8m.pt">v8m Medium 25.9M</option>
+            <option value="yolov8l.pt">v8l Large 43.7M</option>
+            <option value="yolov8x.pt">v8x XLarge 68.2M</option>
+            <option value="yolo11n.pt">v11n Nano 2.6M</option>
+            <option value="yolo11s.pt">v11s Small 9.4M</option>
+            <option value="yolo11m.pt">v11m Medium 20.1M</option>
+            <option value="yolo11l.pt">v11l Large 25.3M</option>
+            <option value="yolo11x.pt">v11x XLarge 56.9M</option>
+            <option value="yolo26n.pt">v26n Nano 2.4M</option>
+            <option value="yolo26s.pt">v26s Small 9.5M</option>
+            <option value="yolo26m.pt">v26m Medium 20.4M</option>
+            <option value="yolo26l.pt">v26l Large 24.8M</option>
+            <option value="yolo26x.pt">v26x XLarge 55.7M</option>
+          </select>
+          <button class="btn btn-accent btn-sm" onclick="switchModel()">切换</button>
         </div>
+        <div class="inline-form"><input type="text" class="input" id="customModel" placeholder="或输入自定义 .pt 路径"></div>
+        <div class="msg" id="msgModel"></div>
       </div>
     </div>
 
-    <!-- 空调控制 -->
+    <!-- Interval -->
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="accent-line" style="background:var(--blue)"></span>
-          空调控制
-        </div>
-        <span class="badge badge-ir">IR</span>
-      </div>
+      <div class="card-header"><div class="card-title"><span class="icon">⏱️</span> 检测间隔</div><span class="card-badge" id="intervalLabel">2.0s</span></div>
       <div class="card-body">
-        <div class="device-card" id="acCard">
-          <div class="device-top">
-            <div class="device-name">
-              <span class="dot dot-off" id="acDot"></span>
-              红外遥控
-            </div>
-            <span class="device-state off" id="acStatus">OFF</span>
-          </div>
-          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-bottom:8px;">
-            模式: <span id="acMode" style="color:var(--text);">—</span>
-          </div>
-          <div class="btn-row" style="margin-bottom:6px;">
-            <button class="ctrl-btn btn-cool" onclick="controlAC('on','cooling')">制 冷</button>
-            <button class="ctrl-btn btn-heat" onclick="controlAC('on','heating')">制 热</button>
-          </div>
-          <div class="btn-row">
-            <button class="ctrl-btn btn-off" onclick="controlAC('off')">关 闭</button>
-          </div>
-        </div>
-
-        <!-- IR 学习 -->
-        <div class="ir-learn">
-          <label>红外信号学习</label>
-          <div class="ir-row">
-            <select class="ir-select" id="irLearnName">
-              <option value="ac_on_cool">空调开机 · 制冷</option>
-              <option value="ac_on_heat">空调开机 · 制热</option>
-              <option value="ac_off">空调关机</option>
-              <option value="ac_temp_up">温度 +</option>
-              <option value="ac_temp_down">温度 −</option>
-            </select>
-            <button class="ctrl-btn btn-learn" style="flex:none;padding:6px 12px;" onclick="learnIR()">学习</button>
-          </div>
-          <div class="ir-status" id="irStatus">对准接收管，选择信号后点击学习</div>
-        </div>
+        <input type="range" id="intervalSlider" min="0.5" max="10" step="0.5" value="2" style="width:100%;accent-color:var(--accent);"
+          oninput="document.getElementById('intervalLabel').textContent=parseFloat(this.value).toFixed(1)+'s'" onchange="applyInterval(this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-light);margin-top:2px;"><span>0.5s 精准</span><span>10s 省资源</span></div>
       </div>
     </div>
 
-  </div><!-- /col-right -->
+    </div>
+  </div>
+</div>
 
-</div><!-- /layout -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-// ── 时钟 ──
-function updateClock(){
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toTimeString().slice(0,8);
+let socket=null,currentServoAngle=90;
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false});}
+setInterval(updateClock,1000);updateClock();
+
+function connectSocket(){
+  socket=io();
+  socket.on('connect',()=>{document.getElementById('wsDot').className='status-dot online';document.getElementById('wsLabel').textContent='已连接';socket.emit('request_video');});
+  socket.on('disconnect',()=>{document.getElementById('wsDot').className='status-dot offline';document.getElementById('wsLabel').textContent='断开';});
+  socket.on('video_frame',d=>{document.getElementById('videoImg').src='data:image/jpeg;base64,'+d.data;});
+  socket.on('metrics',d=>{if(d.fps!=null)document.getElementById('streamFps').textContent=d.fps.toFixed(1);if(d.inference_ms!=null)document.getElementById('inferMs').textContent=d.inference_ms.toFixed(0);});
 }
-setInterval(updateClock, 1000);
-updateClock();
+connectSocket();
 
-// ── 运行时长 ──
-const startTime = Date.now();
-function updateUptime(){
-  const s = Math.floor((Date.now()-startTime)/1000);
-  const h = String(Math.floor(s/3600)).padStart(2,'0');
-  const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
-  const sec = String(s%60).padStart(2,'0');
-  document.getElementById('uptime').textContent = `运行 ${h}:${m}:${sec}`;
+function fetchStatus(){
+  fetch('/api/status').then(r=>r.json()).then(d=>{
+    if(d.error)return;
+    document.getElementById('personCount').textContent=d.person_count||0;
+    if(d.temperature!=null)document.getElementById('temperature').textContent=d.temperature.toFixed(1);
+    if(d.humidity!=null)document.getElementById('humidity').textContent=d.humidity.toFixed(1);
+    if(d.lux!=null)document.getElementById('lux').textContent=Math.round(d.lux);
+    var m=(d.mode||'AUTO').toUpperCase();
+    document.getElementById('btnAuto').className='mode-btn'+(m==='AUTO'?' active':'');
+    document.getElementById('btnManual').className='mode-btn'+(m==='MANUAL'?' active':'');
+    if(d.model_name)document.getElementById('modelBadge').textContent=d.model_name;
+    if(d.servo){var s=d.servo;if(s.current_angle!=null){currentServoAngle=s.current_angle;document.getElementById('servoAngle').textContent=s.current_angle+'°';document.getElementById('servoSlider').value=s.current_angle;}}
+  }).catch(()=>{});
 }
-setInterval(updateUptime, 1000);
+setInterval(fetchStatus,2000);fetchStatus();
 
-// ── 光照历史 ──
-const luxHistory = [];
-function drawSparkline(canvas, data){
-  const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth || 200;
-  const H = 36;
-  canvas.width = W; canvas.height = H;
-  ctx.clearRect(0,0,W,H);
-  if(data.length < 2) return;
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const pts = data.map((v,i)=>[
-    (i/(data.length-1))*W,
-    H - ((v-min)/range)*(H-6) - 3
-  ]);
-  // fill
-  ctx.beginPath();
-  ctx.moveTo(pts[0][0], H);
-  pts.forEach(p=>ctx.lineTo(p[0],p[1]));
-  ctx.lineTo(pts[pts.length-1][0], H);
-  ctx.closePath();
-  const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'rgba(59,130,246,0.3)');
-  grad.addColorStop(1,'rgba(59,130,246,0)');
-  ctx.fillStyle = grad;
-  ctx.fill();
-  // line
-  ctx.beginPath();
-  pts.forEach((p,i)=>i===0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]));
-  ctx.strokeStyle = '#3b82f6';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+// Load conditions on page load
+fetch('/api/conditions').then(r=>r.json()).then(d=>{
+  if(d.time_enabled!=null)document.getElementById('chkTime').checked=d.time_enabled;
+  if(d.light_enabled!=null)document.getElementById('chkLight').checked=d.light_enabled;
+  if(d.presence_enabled!=null)document.getElementById('chkPresence').checked=d.presence_enabled;
+}).catch(()=>{});
+
+function setMode(m){fetch('/api/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:m})}).then(()=>fetchStatus());}
+function applyInterval(v){fetch('/api/detection_interval',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seconds:parseFloat(v)})});}
+function updateServoUI(s){
+  if(!s)return;
+  if(s.current_angle!=null){currentServoAngle=parseInt(s.current_angle);document.getElementById('servoSlider').value=currentServoAngle;document.getElementById('servoAngle').textContent=currentServoAngle+'°';}
 }
-
-// ── 数字滚动动画 ──
-function animateNumber(el, newVal){
-  const old = parseInt(el.textContent) || 0;
-  if(old === newVal) return;
-  el.style.transform = 'scale(1.15)';
-  el.style.transition = 'transform .15s';
-  setTimeout(()=>{ el.style.transform = ''; }, 150);
-  el.textContent = newVal;
+function servoAction(a){fetch('/api/servo/move',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({angle:currentServoAngle,action:a})}).then(r=>r.json()).then(d=>{if(d.ok){updateServoUI(d.servo);}fetchStatus();});}
+function servoMove(a){fetch('/api/servo/move',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({angle:parseInt(a)})}).then(r=>r.json()).then(d=>{if(d.ok)currentServoAngle=parseInt(a);});}
+function servoNudge(d){var a=Math.max(0,Math.min(180,currentServoAngle+d));document.getElementById('servoSlider').value=a;document.getElementById('servoAngle').textContent=a+'°';servoMove(a);}
+function servoCalibrate(p){var a=parseInt(document.getElementById('servoSlider').value);fetch('/api/servo/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({preset:p,angle:a})}).then(()=>fetchStatus());}
+function saveOffsets(){
+  var n=parseInt(document.getElementById('inNeutral').value),on=parseInt(document.getElementById('inOnOff').value),off=parseInt(document.getElementById('inOffOff').value);
+  fetch('/api/servo/set_neutral',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({angle:n})});
+  fetch('/api/servo/set_on_offset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({offset:on})});
+  fetch('/api/servo/set_off_offset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({offset:off})});
 }
-
-// ── 设备状态更新 ──
-function setDeviceState(dotId, statusId, cardId, isOn, label){
-  const dot = document.getElementById(dotId);
-  const status = document.getElementById(statusId);
-  const card = document.getElementById(cardId);
-  dot.className = 'dot ' + (isOn ? 'dot-on dot-pulse' : 'dot-off');
-  status.textContent = isOn ? (label||'ON') : 'OFF';
-  status.className = 'device-state ' + (isOn ? 'on' : 'off');
-  card.classList.toggle('active', isOn);
+function saveConditions(){
+  var d={time_enabled:document.getElementById('chkTime').checked,light_enabled:document.getElementById('chkLight').checked,presence_enabled:document.getElementById('chkPresence').checked};
+  fetch('/api/conditions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(r=>{document.getElementById('msgCond').textContent=r.ok?'已保存':'错误';document.getElementById('msgCond').className='msg '+(r.ok?'msg-ok':'msg-err');});
 }
-
-// ── 主状态轮询 ──
-let lastLogCount = 0;
-function updateStatus(){
-  fetch('/api/status')
-    .then(r=>r.json())
-    .then(data=>{
-      // 模式
-      const isAuto = data.mode === 'AUTO';
-      document.getElementById('btnAuto').className = 'mode-btn' + (isAuto?' active-auto':'');
-      document.getElementById('btnManual').className = 'mode-btn' + (!isAuto?' active-manual':'');
-
-      // 人员
-      const count = data.detector.person_count;
-      const bigNum = document.getElementById('personCount');
-      animateNumber(bigNum, count);
-      bigNum.className = 'big-number ' + (count>0?'has-person':'no-person');
-
-      // 模拟模式提示
-      const simTag = document.getElementById('simTag');
-      if (simTag) simTag.style.display = data.detector.simulated ? 'inline' : 'none';
-
-      // 同步摄像头后端信息
-      if (data.detector.camera_backend && window._updateCameraBackend) {
-        window._updateCameraBackend(data.detector.camera_backend);
-      }
-
-      // 同步检测间隔滑块(防止页面刷新后滑块位置不对)
-      const slider = document.getElementById('intervalSlider');
-      const label  = document.getElementById('intervalLabel');
-      if (slider && data.detector.detection_interval) {
-        const iv = data.detector.detection_interval;
-        // 只在用户没有拖动时同步(避免抢占)
-        if (!slider.matches(':active')) {
-          slider.value = iv;
-          label.textContent = iv.toFixed(1) + ' 秒';
-        }
-      }
-
-      // ── 性能监控更新 ──
-      const det = data.detector;
-      const streamFpsEl = document.getElementById('streamFps');
-      const inferMsEl   = document.getElementById('inferMs');
-      const inferFpsEl  = document.getElementById('inferFps');
-      const suggestEl   = document.getElementById('suggestInterval');
-      const loadBadge   = document.getElementById('loadingBadge');
-      const modelBadge  = document.getElementById('modelBadge');
-
-      if(streamFpsEl) streamFpsEl.textContent = det.stream_fps > 0 ? det.stream_fps + ' fps' : '— fps';
-      if(inferMsEl){
-        if(det.infer_ms > 0){
-          inferMsEl.textContent = det.infer_ms + ' ms';
-          // 颜色提示: <200ms绿, 200-500ms黄, >500ms红
-          inferMsEl.style.color = det.infer_ms < 200 ? 'var(--green)' : det.infer_ms < 500 ? 'var(--amber)' : 'var(--red)';
-        } else {
-          inferMsEl.textContent = '— ms';
-          inferMsEl.style.color = 'var(--text-dim)';
-        }
-      }
-      if(inferFpsEl) inferFpsEl.textContent = det.infer_fps > 0 ? det.infer_fps + ' fps' : '— fps';
-      if(suggestEl && det.infer_ms > 0){
-        const suggest = (det.infer_ms * 1.5 / 1000).toFixed(1);
-        suggestEl.textContent = suggest + ' 秒';
-      }
-      if(loadBadge && !det.model_loading) loadBadge.style.display = 'none';
-      if(modelBadge && det.model_name){
-        const shortName = det.model_name.split('/').pop().replace('.pt','');
-        modelBadge.textContent = shortName;
-        modelBadge.title = det.model_name;
-      }
-
-      const rawEl = document.getElementById('rawStatus');
-      rawEl.textContent = data.detector.has_person ? '检测到' : '未检测';
-      rawEl.style.color = data.detector.has_person ? 'var(--green)' : 'var(--text-dim)';
-
-      const stableEl = document.getElementById('stableStatus');
-      const stable = data.filter.stable_state;
-      stableEl.textContent = stable ? '有人' : '无人';
-      stableEl.style.color = stable ? 'var(--green)' : 'var(--text-dim)';
-
-      // 滤波条
-      const segs = document.querySelectorAll('.filter-seg');
-      const hit = data.filter.hit_count % 5;
-      const miss = data.filter.miss_count % 5;
-      segs.forEach((s,i)=>{
-        s.className = 'filter-seg';
-        if(i < hit) s.classList.add('hit');
-        else if(i >= 5-miss) s.classList.add('miss');
-      });
-      document.getElementById('filterInfo').textContent =
-        `命中 ${data.filter.hit_count} / 未检测 ${data.filter.miss_count}`;
-
-      // 传感器
-      const t = data.sensor.temperature;
-      const tempEl = document.getElementById('temperature');
-      tempEl.textContent = t;
-      tempEl.style.color = t>28?'var(--red)':t<18?'var(--blue)':'var(--green)';
-      document.getElementById('humidity').textContent = data.sensor.humidity;
-      const lux = data.light_ambient ? data.light_ambient.lux : '--';
-      document.getElementById('lux').textContent = lux;
-      if(typeof lux === 'number'){
-        luxHistory.push(lux);
-        if(luxHistory.length>30) luxHistory.shift();
-        drawSparkline(document.getElementById('luxChart'), luxHistory);
-      }
-
-      // 设备
-      const dev = data.devices;
-      setDeviceState('lightDot','lightStatus','lightCard', dev.light);
-      setDeviceState('powerDot','powerStatus','powerCard', dev.power);
-      setDeviceState('acDot','acStatus','acCard', dev.ac);
-
-      if('light_actual' in dev){
-        const la = document.getElementById('lightActual');
-        la.textContent = dev.light_actual ? '灯亮 ✓' : '灯灭';
-        la.style.color = dev.light_actual ? 'var(--green)' : 'var(--text-dim)';
-      }
-
-      if(dev.servo_calibration){
-        const servo = dev.servo_calibration;
-        const slider = document.getElementById('servoAngleSlider');
-        if(slider && !slider.matches(':active')){
-          slider.value = servo.current_angle;
-        }
-        const currentEl = document.getElementById('servoCurrentAngle');
-        if(currentEl) currentEl.textContent = servo.current_angle + '°';
-        const savedEl = document.getElementById('servoSavedAngles');
-        if(savedEl) savedEl.textContent = `开灯按压${servo.angle_on}° / 关灯按压${servo.angle_off}° / 中立回位${servo.angle_neutral}°`;
-        const durationEl = document.getElementById('servoDuration');
-        if(durationEl && !durationEl.matches(':focus')) durationEl.value = servo.action_duration;
-      }
-
-      const modeMap = {off:'—', cooling:'制冷 ❄', heating:'制热 🔥'};
-      document.getElementById('acMode').textContent = modeMap[dev.ac_mode] || dev.ac_mode;
-
-      // 日志
-      const logs = data.recent_logs.slice().reverse();
-      document.getElementById('logCount').textContent = logs.length + ' 条';
-      if(logs.length !== lastLogCount){
-        lastLogCount = logs.length;
-        const list = document.getElementById('logList');
-        list.innerHTML = logs.map(l=>{
-          const isManual = l.action.includes('手动');
-          return `<div class="log-entry ${isManual?'manual':'auto'}">
-            <span class="log-time">${l.time.slice(11)}</span>
-            <span class="log-text">${l.action}</span>
-          </div>`;
-        }).join('');
-      }
-    })
-    .catch(()=>{});
+function saveThreshold(){
+  var v=parseFloat(document.getElementById('inThreshold').value);
+  fetch('/api/light/threshold',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({threshold:v})}).then(r=>r.json()).then(r=>{document.getElementById('msgThreshold').textContent=r.ok?'阈值已保存':r.error;document.getElementById('msgThreshold').className='msg '+(r.ok?'msg-ok':'msg-err');});
 }
-
-// ── 控制函数 ──
-function setMode(mode){
-  fetch('/api/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})})
-    .then(()=>updateStatus());
+function useCurrent(){
+  fetch('/api/light/use_current',{method:'POST'}).then(r=>r.json()).then(r=>{if(r.ok){document.getElementById('inThreshold').value=r.dark_threshold.toFixed(1);document.getElementById('msgThreshold').textContent='已设为 '+r.dark_threshold.toFixed(1)+' lux';document.getElementById('msgThreshold').className='msg msg-ok';}else{document.getElementById('msgThreshold').textContent=r.error;document.getElementById('msgThreshold').className='msg msg-err';}});
 }
-
-// ── 模型切换 ──
-function selectPreset(name){
-  document.getElementById('modelPathInput').value = name;
-  // 高亮选中的按钮
-  document.querySelectorAll('.model-preset-btn').forEach(b=>{
-    b.classList.toggle('active', b.textContent.includes(name.replace('.pt','').replace('yolo','')));
+function saveTimeFallback(){
+  var s=document.getElementById('inTimeStart').value,e=document.getElementById('inTimeEnd').value;
+  fetch('/api/time/fallback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start:s,end:e})}).then(r=>r.json()).then(r=>{document.getElementById('msgThreshold').textContent=r.ok?'时间已保存':r.error;document.getElementById('msgThreshold').className='msg '+(r.ok?'msg-ok':'msg-err');});
+}
+function saveACThresholds(){
+  var c=parseFloat(document.getElementById('inCooling').value),h=parseFloat(document.getElementById('inHeating').value);
+  fetch('/api/ac/thresholds',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cooling:c,heating:h})}).then(r=>r.json()).then(r=>{document.getElementById('msgAC').textContent=r.ok?'已保存':r.error;document.getElementById('msgAC').className='msg '+(r.ok?'msg-ok':'msg-err');});
+}
+function irLearn(){
+  var n=document.getElementById('irNameInput').value.trim();
+  if(!n){document.getElementById('irStatus').textContent='请输入命令名称';document.getElementById('irStatus').className='msg msg-err';return;}
+  document.getElementById('irStatus').textContent='学习中… 请在10秒内对准接收器按下遥控器按键';document.getElementById('irStatus').className='msg msg-warn';
+  fetch('/api/ir/learn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})}).then(r=>r.json()).then(d=>{
+    if(d.ok){document.getElementById('irStatus').textContent='✓ 学习成功: '+n;document.getElementById('irStatus').className='msg msg-ok';document.getElementById('irNameInput').value='';loadIR();}
+    else{document.getElementById('irStatus').textContent='✗ '+(d.error||'学习失败');document.getElementById('irStatus').className='msg msg-err';}
+  }).catch(()=>{document.getElementById('irStatus').textContent='请求失败';document.getElementById('irStatus').className='msg msg-err';});
+}
+function loadIR(){
+  fetch('/api/ir/commands').then(r=>r.json()).then(d=>{
+    var l=document.getElementById('irCmdList'),c=d.commands||[];
+    if(!c.length){l.innerHTML='<div style="text-align:center;color:var(--text-light);padding:8px 0;font-size:11px;">暂无已学习命令</div>';return;}
+    l.innerHTML=c.map(n=>'<div class="cmd-item"><span>'+esc(n)+'</span><span style="display:flex;gap:3px;"><button class="cmd-btn cmd-btn-send" onclick="irSend(\''+esc(n)+'\')">发送</button><button class="cmd-btn cmd-btn-del" onclick="irDel(\''+esc(n)+'\')">删</button></span></div>').join('');
   });
 }
+function irSend(n){fetch('/api/ir/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})}).then(r=>r.json()).then(d=>{document.getElementById('irStatus').textContent=d.ok?'已发送: '+n:(d.error||'失败');document.getElementById('irStatus').className='msg '+(d.ok?'msg-ok':'msg-err');});}
+function irDel(n){if(!confirm('删除 "'+n+'"？'))return;fetch('/api/ir/commands/'+encodeURIComponent(n),{method:'DELETE'}).then(r=>r.json()).then(d=>{if(d.ok)loadIR();});}
 function switchModel(){
-  const path = document.getElementById('modelPathInput').value.trim();
-  if(!path){ return; }
-  const msg = document.getElementById('modelSwitchMsg');
-  const badge = document.getElementById('loadingBadge');
-  msg.textContent = '正在加载模型，请稍候…';
-  msg.style.color = 'var(--amber)';
-  badge.style.display = 'inline';
-
-  fetch('/api/model/switch',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model_path: path})
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.ok){
-      // 轮询加载状态
-      pollModelLoading();
-    } else {
-      msg.textContent = '切换失败: ' + (data.error || '未知错误');
-      msg.style.color = 'var(--red)';
-      badge.style.display = 'none';
-    }
-  })
-  .catch(()=>{
-    msg.textContent = '请求失败，请检查网络';
-    msg.style.color = 'var(--red)';
-    badge.style.display = 'none';
-  });
-}
-function pollModelLoading(){
-  const msg = document.getElementById('modelSwitchMsg');
-  const badge = document.getElementById('loadingBadge');
-  const timer = setInterval(()=>{
-    fetch('/api/model/status').then(r=>r.json()).then(data=>{
-      if(!data.model_loading){
-        clearInterval(timer);
-        badge.style.display = 'none';
-        msg.textContent = '✓ 已切换到: ' + data.model_name;
-        msg.style.color = 'var(--green)';
-        // 更新徽章
-        const shortName = data.model_name.split('/').pop().replace('.pt','');
-        const modelBadge = document.getElementById('modelBadge');
-        if(modelBadge){ modelBadge.textContent = shortName; modelBadge.title = data.model_name; }
+  var c=document.getElementById('customModel').value.trim(),m=c||document.getElementById('modelSelect').value;
+  var msg=document.getElementById('msgModel');
+  msg.textContent='正在下载/切换: '+m;
+  msg.className='msg msg-warn';
+  fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d:d})))
+    .then(({ok,d})=>{
+      if(ok && d.ok){
+        msg.textContent='✓ 已切换: '+m;
+        msg.className='msg msg-ok';
+        if(d.model)document.getElementById('modelBadge').textContent=d.model;
+        if(d.model)document.getElementById('customModel').value='';
+        setTimeout(fetchStatus,300);
+      }else{
+        msg.textContent=d.error||'切换失败';
+        msg.className='msg msg-err';
       }
-    });
-  }, 800);
+    }).catch(()=>{msg.textContent='请求失败';msg.className='msg msg-err';});
 }
-
-// ── 检测间隔调节 ──
-function onIntervalChange(val){
-  // 拖动时只更新标签，不发请求
-  document.getElementById('intervalLabel').textContent = parseFloat(val).toFixed(1) + ' 秒';
-}
-function applyInterval(val){
-  // 松开滑块时发送请求
-  const seconds = parseFloat(val);
-  fetch('/api/detection_interval',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({seconds})
-  }).then(r=>r.json()).then(data=>{
-    document.getElementById('intervalLabel').textContent = data.seconds.toFixed(1) + ' 秒';
-  });
-}
-
-function control(device, action){
-  fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device,action})})
-    .then(()=>updateStatus());
-}
-function controlAC(action, mode){
-  fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device:'ac',action,mode:mode||'cooling'})})
-    .then(()=>updateStatus());
-}
-function setServoStatus(msg, cls){
-  const el = document.getElementById('servoCalibStatus');
-  if(!el) return;
-  el.className = 'ir-status' + (cls ? ' ' + cls : '');
-  el.textContent = msg;
-}
-function servoMove(angle){
-  fetch('/api/servo/move',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({angle: parseInt(angle, 10)})
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.ok){
-      document.getElementById('servoCurrentAngle').textContent = data.angle + '°';
-      setServoStatus(`舵机已移动到 ${data.angle}°`, '');
-      updateStatus();
-    } else {
-      setServoStatus(data.error || '舵机移动失败', 'fail');
-    }
-  })
-  .catch(()=>setServoStatus('舵机移动请求失败', 'fail'));
-}
-function servoNudge(delta){
-  fetch('/api/servo/nudge',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({delta})
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.ok){
-      document.getElementById('servoAngleSlider').value = data.angle;
-      document.getElementById('servoCurrentAngle').textContent = data.angle + '°';
-      setServoStatus(`舵机微调到 ${data.angle}°`, '');
-      updateStatus();
-    } else {
-      setServoStatus(data.error || '舵机微调失败', 'fail');
-    }
-  })
-  .catch(()=>setServoStatus('舵机微调请求失败', 'fail'));
-}
-function servoMoveNeutral(){
-  const savedText = document.getElementById('servoSavedAngles').textContent;
-  const match = savedText.match(/中立回位(\d+)°/);
-  const neutral = match ? parseInt(match[1], 10) : 90;
-  servoMove(neutral);
-}
-function servoSavePreset(preset){
-  const angle = parseInt(document.getElementById('servoAngleSlider').value, 10);
-  fetch('/api/servo/save',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({preset, angle})
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.ok){
-      const s = data.status;
-      document.getElementById('servoSavedAngles').textContent =
-        `开灯按压${s.angle_on}° / 关灯按压${s.angle_off}° / 中立回位${s.angle_neutral}°`;
-      document.getElementById('servoCurrentAngle').textContent = s.current_angle + '°';
-      document.getElementById('servoAngleSlider').value = s.current_angle;
-      const textMap = {on:'已记录为开灯按压角', off:'已记录为关灯按压角', neutral:'已记录为中立回位角'};
-      setServoStatus(textMap[preset] || '已保存', 'success');
-      updateStatus();
-    } else {
-      setServoStatus(data.error || '记录失败', 'fail');
-    }
-  })
-  .catch(()=>setServoStatus('保存预设请求失败', 'fail'));
-}
-function saveServoDuration(){
-  const action_duration = parseFloat(document.getElementById('servoDuration').value);
-  fetch('/api/servo/config',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action_duration})
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.ok){
-      document.getElementById('servoDuration').value = data.status.action_duration;
-      setServoStatus(`已保存动作保持时长 ${data.status.action_duration}s`, 'success');
-      updateStatus();
-    } else {
-      setServoStatus(data.error || '保存时长失败', 'fail');
-    }
-  })
-  .catch(()=>setServoStatus('保存时长请求失败', 'fail'));
-}
-function learnIR(){
-  const name = document.getElementById('irLearnName').value;
-  const statusEl = document.getElementById('irStatus');
-  statusEl.className = 'ir-status learning';
-  statusEl.textContent = '正在学习，请对准接收管按下遥控器...';
-  fetch('/api/ir/learn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})
-    .then(r=>r.json())
-    .then(data=>{
-      statusEl.className = 'ir-status ' + (data.ok?'success':'fail');
-      statusEl.textContent = data.ok ? `"${name}" 学习成功 ✓` : `"${name}" 学习失败，请重试`;
-      setTimeout(()=>{
-        statusEl.className='ir-status';
-        statusEl.textContent='对准接收管，选择信号后点击学习';
-      }, 4000);
-    })
-    .catch(()=>{ statusEl.className='ir-status fail'; statusEl.textContent='请求失败'; });
-}
-
-setInterval(updateStatus, 2000);
-updateStatus();
-
-// ── WebSocket 视频推流 ────────────────────────────────────────────────
-(function initVideoStream() {
-  const img = document.getElementById('videoImg');
-  const hint = document.getElementById('streamModeHint');
-  const backendTag = document.getElementById('streamBackendTag');
-  if (!img) return;
-
-  let wsOk = false;
-  let currentBlobUrl = null;
-
-  function releaseBlobUrl() {
-    if (currentBlobUrl) {
-      URL.revokeObjectURL(currentBlobUrl);
-      currentBlobUrl = null;
-    }
-  }
-
-  function connectWS() {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/ws/video`);
-    ws.binaryType = 'arraybuffer';
-
-    ws.onopen = () => {
-      wsOk = true;
-      if (hint) hint.textContent = 'WebSocket 推流 · 低延迟模式';
-      if (backendTag) backendTag.textContent = 'WS';
-    };
-
-    ws.onmessage = (e) => {
-      // 收到二进制 JPEG，转为 Blob URL 显示
-      const blob = new Blob([e.data], { type: 'image/jpeg' });
-      const url = URL.createObjectURL(blob);
-      releaseBlobUrl();
-      currentBlobUrl = url;
-      img.src = url;
-    };
-
-    ws.onerror = () => {
-      wsOk = false;
-    };
-
-    ws.onclose = () => {
-      wsOk = false;
-      releaseBlobUrl();
-      if (hint) hint.textContent = 'WebSocket 断开，已降级到 MJPEG';
-      if (backendTag) backendTag.textContent = 'MJPEG';
-      // 降级到 MJPEG
-      img.src = '/video_feed';
-      // 5 秒后尝试重连 WebSocket
-      setTimeout(connectWS, 5000);
-    };
-  }
-
-  // 检测浏览器是否支持 WebSocket
-  if (typeof WebSocket !== 'undefined') {
-    connectWS();
-  } else {
-    // 不支持 WebSocket，直接用 MJPEG
-    img.src = '/video_feed';
-    if (hint) hint.textContent = 'MJPEG 模式（浏览器不支持 WebSocket）';
-  }
-
-  // 同步摄像头后端信息到标签
-  window._updateCameraBackend = function(backend) {
-    if (backendTag && wsOk) {
-      backendTag.textContent = 'WS · ' + backend;
-    }
-  };
-})();
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+loadIR();
 </script>
 </body>
 </html>
