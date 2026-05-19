@@ -56,180 +56,313 @@ TEXT_DIM = "#757575"
 
 # ── 亮色 QSS 样式表 ──────────────────────────────────────────────────
 STYLE = f"""
+/* ── 全局基础 ── */
 * {{
     font-size: 12px;
     color: {TEXT_DARK};
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
 }}
-QMainWindow, QWidget, QScrollArea, QScrollArea > QWidget > QWidget {{
+QMainWindow, QWidget {{
     background-color: {BG_LIGHT};
 }}
+QScrollArea, QScrollArea > QWidget > QWidget {{
+    background-color: {BG_LIGHT};
+}}
+
+/* ── GroupBox 卡片 ── */
 QGroupBox {{
     background-color: {CARD_BG};
     border: 1px solid {BORDER};
     border-radius: 10px;
-    margin-top: 12px;
-    padding: 12px 10px 10px 10px;
-    font-weight: bold;
-    font-size: 13px;
-    color: {ACCENT};
+    margin-top: 14px;
+    padding: 14px 10px 10px 10px;
 }}
 QGroupBox::title {{
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    left: 12px;
-    padding: 2px 8px;
-    background-color: {CARD_BG};
-    border-radius: 4px;
+    left: 10px;
+    padding: 3px 10px;
+    background-color: {ACCENT};
+    color: white;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 12px;
 }}
+
+/* ── 按钮 ── */
 QPushButton {{
-    background-color: {BG_LIGHT};
+    background-color: {BG_WHITE};
     color: {TEXT_DARK};
     border: 1px solid {BORDER};
     border-radius: 6px;
-    padding: 4px 10px;
-    min-height: 24px;
+    padding: 5px 12px;
+    min-height: 26px;
+    font-weight: 500;
 }}
-QPushButton:hover {{ background-color: #e3f2fd; border-color: {ACCENT}; }}
-QPushButton:pressed {{ background-color: {ACCENT}; color: white; }}
+QPushButton:hover {{
+    background-color: #e8f4fd;
+    border-color: {ACCENT};
+    color: {ACCENT};
+}}
+QPushButton:pressed {{
+    background-color: {ACCENT};
+    color: white;
+    border-color: {ACCENT};
+}}
 QPushButton[role="on"] {{
-    background-color: {GREEN}; color: white; font-weight: bold;
+    background-color: {GREEN};
+    color: white;
+    font-weight: bold;
     border-color: {GREEN};
 }}
-QPushButton[role="on"]:hover {{ background-color: #388e3c; }}
+QPushButton[role="on"]:hover {{ background-color: #2da44e; }}
 QPushButton[role="off"] {{
-    background-color: {RED}; color: white; font-weight: bold;
+    background-color: {RED};
+    color: white;
+    font-weight: bold;
     border-color: {RED};
 }}
-QPushButton[role="off"]:hover {{ background-color: #c62828; }}
+QPushButton[role="off"]:hover {{ background-color: #d32f2f; }}
 QPushButton[role="accent"] {{
-    background-color: {ACCENT}; color: white; font-weight: bold;
+    background-color: {ACCENT};
+    color: white;
+    font-weight: bold;
     border-color: {ACCENT};
 }}
 QPushButton[role="accent"]:hover {{ background-color: {ACCENT_HOVER}; }}
 QPushButton[role="mode_active"] {{
-    background-color: {ACCENT}; color: white; font-weight: bold;
+    background-color: {ACCENT};
+    color: white;
+    font-weight: bold;
+    border-color: {ACCENT};
 }}
 QPushButton[role="mode_manual_active"] {{
-    background-color: {AMBER}; color: {TEXT_DARK}; font-weight: bold;
+    background-color: {AMBER};
+    color: white;
+    font-weight: bold;
+    border-color: {AMBER};
 }}
-QSlider::groove:horizontal {{
-    height: 4px; background: {BORDER}; border-radius: 2px;
-}}
-QSlider::handle:horizontal {{
-    background: {ACCENT}; width: 14px; height: 14px;
-    margin: -5px 0; border-radius: 7px;
-}}
-QSlider::sub-page:horizontal {{ background: {ACCENT}; border-radius: 2px; }}
-QTextEdit {{
-    background-color: {BG_WHITE};
-    color: {TEXT_DIM};
-    border: 1px solid {BORDER};
-    border-radius: 6px;
-    font-family: "Consolas", "Courier New", monospace;
-    font-size: 11px;
-    padding: 4px;
-}}
-QComboBox {{
-    background-color: {BG_WHITE};
-    color: {TEXT_DARK};
-    border: 1px solid {BORDER};
-    border-radius: 6px;
-    padding: 4px 8px;
-    min-height: 24px;
-}}
-QComboBox:hover {{ border-color: {ACCENT}; }}
-QComboBox QAbstractItemView {{
-    background-color: {BG_WHITE};
-    color: {TEXT_DARK};
-    border: 1px solid {BORDER};
-    selection-background-color: #e3f2fd;
-}}
-QComboBox::drop-down {{ border: none; width: 20px; }}
-QScrollBar:vertical {{
-    background: {BG_LIGHT}; width: 6px; border-radius: 3px;
-}}
-QScrollBar::handle:vertical {{
-    background: {BORDER}; border-radius: 3px; min-height: 20px;
-}}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
-QStatusBar {{
-    background-color: {BG_WHITE};
-    color: {TEXT_DIM};
-    font-size: 11px;
-    border-top: 1px solid {BORDER};
-}}
-QSplitter::handle {{ background-color: {BORDER}; }}
-QSplitter::handle:horizontal {{ width: 2px; }}
-QSplitter::handle:vertical {{ height: 2px; }}
+
+/* ── 输入框 ── */
 QLineEdit {{
     background-color: {BG_WHITE};
     color: {TEXT_DARK};
     border: 1px solid {BORDER};
     border-radius: 6px;
+    padding: 5px 9px;
+    min-height: 26px;
+    selection-background-color: {ACCENT};
+    selection-color: white;
+}}
+QLineEdit:focus {{
+    border: 2px solid {ACCENT};
     padding: 4px 8px;
-    min-height: 24px;
+    background-color: #fafcff;
 }}
-QLineEdit:focus {{ border-color: {ACCENT}; }}
-QLabel {{
-    border-radius: 4px;
-    padding: 1px 2px;
+QLineEdit:hover:!focus {{
+    border-color: #b0c8e8;
 }}
+
+/* ── SpinBox ── */
 QSpinBox, QDoubleSpinBox {{
     background-color: {BG_WHITE};
     color: {TEXT_DARK};
     border: 1px solid {BORDER};
     border-radius: 6px;
-    padding: 3px 6px;
-    min-height: 22px;
+    padding: 4px 6px;
+    min-height: 26px;
+    selection-background-color: {ACCENT};
 }}
-QSpinBox:focus, QDoubleSpinBox:focus {{ border-color: {ACCENT}; }}
+QSpinBox:focus, QDoubleSpinBox:focus {{
+    border: 2px solid {ACCENT};
+    background-color: #fafcff;
+}}
 QSpinBox::up-button, QDoubleSpinBox::up-button {{
     subcontrol-origin: border;
     subcontrol-position: top right;
-    width: 16px;
+    width: 18px;
     border-left: 1px solid {BORDER};
     border-top-right-radius: 5px;
     background: {BG_LIGHT};
 }}
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover {{
+    background: #e8f4fd;
+}}
 QSpinBox::down-button, QDoubleSpinBox::down-button {{
     subcontrol-origin: border;
     subcontrol-position: bottom right;
-    width: 16px;
+    width: 18px;
     border-left: 1px solid {BORDER};
     border-bottom-right-radius: 5px;
     background: {BG_LIGHT};
 }}
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {{
+    background: #e8f4fd;
+}}
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{
-    width: 7px; height: 7px;
+    width: 8px; height: 8px;
 }}
 QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
-    width: 7px; height: 7px;
+    width: 8px; height: 8px;
 }}
+
+/* ── ComboBox ── */
+QComboBox {{
+    background-color: {BG_WHITE};
+    color: {TEXT_DARK};
+    border: 1px solid {BORDER};
+    border-radius: 6px;
+    padding: 5px 9px;
+    min-height: 26px;
+}}
+QComboBox:hover {{ border-color: #b0c8e8; }}
+QComboBox:focus {{ border: 2px solid {ACCENT}; background-color: #fafcff; }}
+QComboBox::drop-down {{
+    border: none;
+    width: 22px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    background: {BG_LIGHT};
+}}
+QComboBox::drop-down:hover {{ background: #e8f4fd; }}
+QComboBox QAbstractItemView {{
+    background-color: {BG_WHITE};
+    color: {TEXT_DARK};
+    border: 1px solid {BORDER};
+    border-radius: 6px;
+    padding: 2px;
+    selection-background-color: #e8f4fd;
+    selection-color: {ACCENT};
+    outline: none;
+}}
+
+/* ── CheckBox ── */
 QCheckBox {{
-    spacing: 6px;
-    padding: 2px 4px;
-    border-radius: 4px;
+    spacing: 8px;
+    padding: 3px 6px;
+    border-radius: 5px;
+    color: {TEXT_DARK};
+}}
+QCheckBox:hover {{
+    background-color: #e8f4fd;
 }}
 QCheckBox::indicator {{
-    width: 14px; height: 14px;
-    border-radius: 3px;
-    border: 1px solid {BORDER};
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    border: 1.5px solid {BORDER};
+    background: {BG_WHITE};
+}}
+QCheckBox::indicator:hover {{
+    border-color: {ACCENT};
 }}
 QCheckBox::indicator:checked {{
     background-color: {ACCENT};
     border-color: {ACCENT};
+    image: url(none);
 }}
+
+/* ── Slider ── */
+QSlider::groove:horizontal {{
+    height: 5px;
+    background: {BORDER};
+    border-radius: 3px;
+}}
+QSlider::handle:horizontal {{
+    background: {ACCENT};
+    width: 16px;
+    height: 16px;
+    margin: -6px 0;
+    border-radius: 8px;
+    border: 2px solid white;
+}}
+QSlider::handle:horizontal:hover {{
+    background: {ACCENT_HOVER};
+    width: 18px;
+    height: 18px;
+    margin: -7px 0;
+    border-radius: 9px;
+}}
+QSlider::sub-page:horizontal {{
+    background: {ACCENT};
+    border-radius: 3px;
+}}
+
+/* ── TextEdit (日志) ── */
+QTextEdit {{
+    background-color: #1e2430;
+    color: #a8c0d6;
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 11px;
+    padding: 6px;
+    selection-background-color: {ACCENT};
+}}
+
+/* ── Label ── */
+QLabel {{
+    background: transparent;
+    border: none;
+}}
+
+/* ── ProgressBar ── */
 QProgressBar {{
     background-color: {BG_LIGHT};
     border: 1px solid {BORDER};
-    border-radius: 4px;
+    border-radius: 5px;
     height: 14px;
     text-align: center;
     font-size: 10px;
+    color: {TEXT_DIM};
 }}
 QProgressBar::chunk {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 {ACCENT}, stop:1 #64b5f6);
+    border-radius: 4px;
+}}
+
+/* ── ScrollBar ── */
+QScrollBar:vertical {{
+    background: transparent;
+    width: 7px;
+    border-radius: 4px;
+    margin: 2px;
+}}
+QScrollBar::handle:vertical {{
+    background: #c8d8e8;
+    border-radius: 4px;
+    min-height: 24px;
+}}
+QScrollBar::handle:vertical:hover {{
+    background: #a0b8cc;
+}}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
+
+/* ── Splitter ── */
+QSplitter::handle {{
+    background-color: {BORDER};
+    border-radius: 2px;
+}}
+QSplitter::handle:horizontal {{
+    width: 4px;
+    margin: 4px 0;
+}}
+QSplitter::handle:vertical {{
+    height: 4px;
+    margin: 0 4px;
+}}
+QSplitter::handle:hover {{
     background-color: {ACCENT};
-    border-radius: 3px;
+}}
+
+/* ── StatusBar ── */
+QStatusBar {{
+    background-color: {BG_WHITE};
+    color: {TEXT_DIM};
+    font-size: 11px;
+    border-top: 1px solid {BORDER};
 }}
 """
 
@@ -353,16 +486,19 @@ class _QtLogHandler(logging.Handler):
             cursor.deleteChar()  # 删除多余换行
 
 def _lbl(text, color=TEXT_DARK, bold=False, size=13, mono=False):
-    """快速创建样式化 QLabel"""
+    """快速创建样式化 QLabel — 强制透明背景，避免继承父控件颜色"""
     w = QLabel(text)
     w.setStyleSheet(
         f"color:{color};"
         f"font-size:{size}px;"
-        f"border-radius:4px;"
-        f"padding:2px 4px;"
+        f"background:transparent;"
+        f"border:none;"
+        f"padding:1px 3px;"
         f"{'font-weight:bold;' if bold else ''}"
         f"{'font-family:Consolas,monospace;' if mono else ''}"
     )
+    if not mono:
+        w.setWordWrap(True)
     return w
 
 
@@ -427,38 +563,48 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
         root = QHBoxLayout(central)
         root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(0)
+        root.setSpacing(6)
 
-        orientation = Qt.Orientation.Vertical if self.compact_ui else Qt.Orientation.Horizontal
-        splitter = QSplitter(orientation)
-        splitter.setHandleWidth(4)
+        # ── 三列布局：信息列 | 视频+日志列 | 控制面板列 ──
+        main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        main_splitter.setHandleWidth(4)
 
-        # ── 左侧：视频 + 日志 ──
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 0 if self.compact_ui else 4, 0)
-        left_layout.setSpacing(8)
+        # ── 左侧信息列（人员检测 + 环境传感器 + 性能 + 模型切换，固定宽度，不可滚动）──
+        info_widget = QWidget()
+        info_layout = QVBoxLayout(info_widget)
+        info_layout.setContentsMargins(0, 0, 4, 0)
+        info_layout.setSpacing(8)
+        info_layout.addWidget(self._build_detection_card())
+        info_layout.addWidget(self._build_env_card())
+        info_layout.addWidget(self._build_perf_card())
+        info_layout.addWidget(self._build_model_card())
+        info_layout.addStretch()
+
+        # ── 中间列：视频 + 日志 ──
+        mid_widget = QWidget()
+        mid_layout = QVBoxLayout(mid_widget)
+        mid_layout.setContentsMargins(0, 0, 4, 0)
+        mid_layout.setSpacing(8)
 
         v_splitter = QSplitter(Qt.Orientation.Vertical)
         v_splitter.addWidget(self._build_video_card())
         v_splitter.addWidget(self._build_log_card())
         v_splitter.setStretchFactor(0, 7)
         v_splitter.setStretchFactor(1, 1)
-        left_layout.addWidget(v_splitter)
+        mid_layout.addWidget(v_splitter)
 
         # ── 右侧：控制面板（可滚动）──
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setMinimumWidth(260)  # 防止右列被拖得过窄导致文字溢出
         scroll.setFrameShape(QFrame.Shape.NoFrame)
 
         right_widget = QWidget()
+        right_widget.setMinimumWidth(250)
         right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(
-            0 if self.compact_ui else 4, 4 if self.compact_ui else 0, 0, 0)
+        right_layout.setContentsMargins(4, 0, 0, 0)
         right_layout.setSpacing(8)
-        right_layout.addWidget(self._build_detection_card())
-        right_layout.addWidget(self._build_env_card())
         right_layout.addWidget(self._build_servo_card())
         right_layout.addWidget(self._build_servo_calibration_card())
         right_layout.addWidget(self._build_light_threshold_card())
@@ -467,22 +613,21 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self._build_temperature_card())
         right_layout.addWidget(self._build_ir_card())
         right_layout.addWidget(self._build_ir_wizard_card())
-        right_layout.addWidget(self._build_model_card())
         right_layout.addStretch()
         scroll.setWidget(right_widget)
 
-        splitter.addWidget(left_widget)
-        splitter.addWidget(scroll)
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 2)
-        if self.compact_ui:
-            total_height = self.height() if self.height() > 0 else 700
-            splitter.setSizes([int(total_height * 0.58), int(total_height * 0.42)])
-        else:
-            total_width = self.width() if self.width() > 0 else 1200
-            splitter.setSizes([int(total_width * 0.62), int(total_width * 0.38)])
+        main_splitter.addWidget(info_widget)
+        main_splitter.addWidget(mid_widget)
+        main_splitter.addWidget(scroll)
 
-        root.addWidget(splitter)
+        # 比例：信息列 ~160px | 视频列 ~60% | 控制列 ~30%
+        total_width = self.width() if self.width() > 0 else 1360
+        main_splitter.setSizes([160, int((total_width - 160) * 0.62), int((total_width - 160) * 0.38)])
+        main_splitter.setStretchFactor(0, 0)   # 信息列不随窗口拉伸
+        main_splitter.setStretchFactor(1, 3)   # 视频列优先拉伸
+        main_splitter.setStretchFactor(2, 2)   # 控制列次之
+
+        root.addWidget(main_splitter)
 
         # 状态栏
         sb = QStatusBar()
@@ -520,17 +665,6 @@ class MainWindow(QMainWindow):
             f"background:{BG_LIGHT};border-radius:6px;border:1px solid {BORDER};")
         self.video_label.setMinimumHeight(320)
         layout.addWidget(self.video_label, stretch=1)
-
-        # 性能行
-        perf = QHBoxLayout()
-        perf.setSpacing(16)
-        self.lbl_fps = _lbl("采集: — fps", TEXT_DIM, size=11, mono=True)
-        self.lbl_infer = _lbl("推理: — ms", TEXT_DIM, size=11, mono=True)
-        self.lbl_backend = _lbl("后端: —", TEXT_DIM, size=11)
-        for w in (self.lbl_fps, self.lbl_infer, self.lbl_backend):
-            perf.addWidget(w)
-        perf.addStretch()
-        layout.addLayout(perf)
         return box
 
     # ── 日志卡片 ──────────────────────────────────────────────────────
@@ -610,6 +744,36 @@ class MainWindow(QMainWindow):
 
         return box
 
+    # ── 性能监控卡片 ──────────────────────────────────────────────────
+
+    def _build_perf_card(self):
+        box = QGroupBox("📊 性能监控")
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(10, 16, 10, 10)
+        layout.setSpacing(6)
+
+        row_fps = QHBoxLayout()
+        row_fps.addWidget(_lbl("帧率:", TEXT_DIM, size=11))
+        self.lbl_fps = _lbl("— fps", TEXT_DARK, bold=True, mono=True, size=11)
+        row_fps.addWidget(self.lbl_fps)
+        row_fps.addStretch()
+        layout.addLayout(row_fps)
+
+        row_infer = QHBoxLayout()
+        row_infer.addWidget(_lbl("推理:", TEXT_DIM, size=11))
+        self.lbl_infer = _lbl("— ms", TEXT_DARK, bold=True, mono=True, size=11)
+        row_infer.addWidget(self.lbl_infer)
+        row_infer.addStretch()
+        layout.addLayout(row_infer)
+
+        row_backend = QHBoxLayout()
+        row_backend.addWidget(_lbl("后端:", TEXT_DIM, size=11))
+        self.lbl_backend = _lbl("—", TEXT_DIM, size=11)
+        row_backend.addWidget(self.lbl_backend)
+        row_backend.addStretch()
+        layout.addLayout(row_backend)
+
+        return box
 
     # ── 舵机校准卡片 ──────────────────────────────────────────────────
 
@@ -685,7 +849,8 @@ class MainWindow(QMainWindow):
         row_duration = QHBoxLayout()
         row_duration.addWidget(_lbl("保持时长(s):", TEXT_DIM, size=11))
         self.edit_servo_duration = QLineEdit("0.5")
-        self.edit_servo_duration.setFixedWidth(72)
+        self.edit_servo_duration.setMinimumWidth(60)
+        self.edit_servo_duration.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row_duration.addWidget(self.edit_servo_duration)
         btn_save_dur = _btn("保存", width=60)
         btn_save_dur.clicked.connect(self._servo_save_duration)
@@ -719,7 +884,8 @@ class MainWindow(QMainWindow):
         self.spin_neutral.setRange(0, 180)
         self.spin_neutral.setValue(neutral)
         self.spin_neutral.setSuffix("°")
-        self.spin_neutral.setFixedWidth(70)
+        self.spin_neutral.setMinimumWidth(55)
+        self.spin_neutral.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row_neutral.addWidget(self.spin_neutral)
         btn_test_neutral = _btn("测试", "accent", 50)
         btn_test_neutral.clicked.connect(self._calibration_test_neutral)
@@ -729,7 +895,8 @@ class MainWindow(QMainWindow):
         self.spin_on_offset.setRange(-90, 90)
         self.spin_on_offset.setValue(on_offset)
         self.spin_on_offset.setSuffix("°")
-        self.spin_on_offset.setFixedWidth(70)
+        self.spin_on_offset.setMinimumWidth(55)
+        self.spin_on_offset.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row_neutral.addWidget(self.spin_on_offset)
         btn_test_on = _btn("测试", "accent", 50)
         btn_test_on.clicked.connect(self._calibration_test_on)
@@ -744,7 +911,8 @@ class MainWindow(QMainWindow):
         self.spin_off_offset.setRange(-90, 90)
         self.spin_off_offset.setValue(off_offset)
         self.spin_off_offset.setSuffix("°")
-        self.spin_off_offset.setFixedWidth(70)
+        self.spin_off_offset.setMinimumWidth(55)
+        self.spin_off_offset.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row_off.addWidget(self.spin_off_offset)
         btn_test_off = _btn("测试", "accent", 50)
         btn_test_off.clicked.connect(self._calibration_test_off)
@@ -778,7 +946,8 @@ class MainWindow(QMainWindow):
         self.spin_dark_threshold.setValue(threshold)
         self.spin_dark_threshold.setSuffix(" lux")
         self.spin_dark_threshold.setDecimals(1)
-        self.spin_dark_threshold.setFixedWidth(100)
+        self.spin_dark_threshold.setMinimumWidth(70)
+        self.spin_dark_threshold.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row_threshold.addWidget(self.spin_dark_threshold)
         btn_use_current = _btn("用当前值", "accent", 80)
         btn_use_current.clicked.connect(self._light_use_current)
@@ -842,12 +1011,14 @@ class MainWindow(QMainWindow):
         row = QHBoxLayout()
         row.addWidget(_lbl("白天:", TEXT_DIM, size=11))
         self.edit_fallback_start = QLineEdit(fallback.get("start", "06:00"))
-        self.edit_fallback_start.setFixedWidth(60)
+        self.edit_fallback_start.setMinimumWidth(50)
+        self.edit_fallback_start.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.edit_fallback_start.setPlaceholderText("HH:MM")
         row.addWidget(self.edit_fallback_start)
         row.addWidget(_lbl("~", TEXT_DIM, size=11))
         self.edit_fallback_end = QLineEdit(fallback.get("end", "18:00"))
-        self.edit_fallback_end.setFixedWidth(60)
+        self.edit_fallback_end.setMinimumWidth(50)
+        self.edit_fallback_end.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.edit_fallback_end.setPlaceholderText("HH:MM")
         row.addWidget(self.edit_fallback_end)
         btn_save_time = _btn("保存", "accent", 50)
@@ -881,7 +1052,8 @@ class MainWindow(QMainWindow):
         self.spin_cooling.setValue(ac_cfg.get("cooling", 28.0))
         self.spin_cooling.setSuffix("°C")
         self.spin_cooling.setDecimals(1)
-        self.spin_cooling.setFixedWidth(80)
+        self.spin_cooling.setMinimumWidth(60)
+        self.spin_cooling.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row.addWidget(self.spin_cooling)
         row.addWidget(_lbl("制热 <", TEXT_DIM, size=11))
         self.spin_heating = QDoubleSpinBox()
@@ -889,7 +1061,8 @@ class MainWindow(QMainWindow):
         self.spin_heating.setValue(ac_cfg.get("heating", 18.0))
         self.spin_heating.setSuffix("°C")
         self.spin_heating.setDecimals(1)
-        self.spin_heating.setFixedWidth(80)
+        self.spin_heating.setMinimumWidth(60)
+        self.spin_heating.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row.addWidget(self.spin_heating)
         btn_save_temp = _btn("保存", "accent", 50)
         btn_save_temp.clicked.connect(self._temperature_save)
@@ -979,7 +1152,8 @@ class MainWindow(QMainWindow):
         row_learn.addWidget(_lbl("命令名称:", TEXT_DIM, size=11))
         self.edit_ir_name = QLineEdit()
         self.edit_ir_name.setPlaceholderText("例: ac_on_cool")
-        self.edit_ir_name.setFixedWidth(140)
+        self.edit_ir_name.setMinimumWidth(80)
+        self.edit_ir_name.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row_learn.addWidget(self.edit_ir_name)
         btn_learn = _btn("学习", "accent", 60)
         btn_learn.clicked.connect(self._ir_learn)
