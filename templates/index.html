@@ -44,7 +44,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 /* Main */
 .main-layout{flex:1;display:flex;gap:12px;padding:10px 14px;min-height:0;overflow:hidden;align-items:flex-start;justify-content:center;width:min(1600px,100%);margin:0 auto;}
-.left-panel{flex:0 0 66.666%;max-width:66.666%;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;}
+
+/* Info column (leftmost, narrow, vertical) */
+.info-panel{flex:0 0 140px;width:140px;display:flex;flex-direction:column;gap:8px;min-width:0;max-height:calc(100vh - 72px);overflow-y:auto;}
+.info-panel::-webkit-scrollbar{width:3px;}
+.info-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* Video column (middle) */
+.left-panel{flex:0 0 calc(66.666% - 152px);display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;}
+
 .right-panel{flex:0 0 33.334%;max-width:340px;overflow-y:auto;overflow-x:hidden;padding-right:4px;max-height:calc(100vh - 72px);}
 .right-panel::-webkit-scrollbar{width:4px;}
 .right-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
@@ -65,9 +73,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .video-container img{display:block;width:100%;height:auto;max-width:100%;object-fit:contain;}
 .video-status{position:absolute;top:8px;right:8px;font-size:9px;background:rgba(0,0,0,.6);color:var(--green);padding:2px 8px;border-radius:4px;}
 
-/* Info row */
-.info-row{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
-.info-row .card{flex:1 1 220px;min-width:0;}
+/* Info column cards — compact for narrow column */
+.info-panel .card-body{padding:8px 10px;}
+.info-panel .person-count .number{font-size:28px;}
+.info-panel .data-row{padding:4px 0;}
+.info-panel .data-value{font-size:13px;}
 
 /* Data */
 .data-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);}
@@ -157,7 +167,30 @@ select.input{cursor:pointer;}
 </header>
 
 <div class="main-layout">
-  <!-- LEFT -->
+  <!-- INFO COLUMN (leftmost, vertical stack) -->
+  <div class="info-panel">
+    <div class="card">
+      <div class="card-header"><div class="card-title"><span class="icon">👤</span> 人员</div><span class="card-badge" id="modelBadge">yolov8n</span></div>
+      <div class="card-body"><div class="person-count"><div class="number" id="personCount">0</div><div class="label">检测人数</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title"><span class="icon">🌡️</span> 环境</div></div>
+      <div class="card-body">
+        <div class="data-row"><span class="data-label">温度</span><span><span class="data-value" id="temperature">--</span><span class="data-unit">°C</span></span></div>
+        <div class="data-row"><span class="data-label">湿度</span><span><span class="data-value" id="humidity">--</span><span class="data-unit">%</span></span></div>
+        <div class="data-row"><span class="data-label">光照</span><span><span class="data-value" id="lux">--</span><span class="data-unit">lux</span></span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title"><span class="icon">📊</span> 性能</div></div>
+      <div class="card-body">
+        <div class="data-row"><span class="data-label">帧率</span><span><span class="data-value" id="streamFps">--</span><span class="data-unit">fps</span></span></div>
+        <div class="data-row"><span class="data-label">推理</span><span><span class="data-value" id="inferMs">--</span><span class="data-unit">ms</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIDEO COLUMN (middle) -->
   <div class="left-panel">
     <div class="card video-card">
       <div class="card-header">
@@ -165,27 +198,6 @@ select.input{cursor:pointer;}
         <div class="card-badge" id="videoStatus">● LIVE</div>
       </div>
       <div class="card-body"><div class="video-container"><img id="videoImg" alt="视频流"></div></div>
-    </div>
-    <div class="info-row">
-      <div class="card">
-        <div class="card-header"><div class="card-title"><span class="icon">👤</span> 人员</div><span class="card-badge" id="modelBadge">yolov8n</span></div>
-        <div class="card-body"><div class="person-count"><div class="number" id="personCount">0</div><div class="label">检测人数</div></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title"><span class="icon">🌡️</span> 环境</div></div>
-        <div class="card-body">
-          <div class="data-row"><span class="data-label">温度</span><span><span class="data-value" id="temperature">--</span><span class="data-unit">°C</span></span></div>
-          <div class="data-row"><span class="data-label">湿度</span><span><span class="data-value" id="humidity">--</span><span class="data-unit">%</span></span></div>
-          <div class="data-row"><span class="data-label">光照</span><span><span class="data-value" id="lux">--</span><span class="data-unit">lux</span></span></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title"><span class="icon">📊</span> 性能</div></div>
-        <div class="card-body">
-          <div class="data-row"><span class="data-label">帧率</span><span><span class="data-value" id="streamFps">--</span><span class="data-unit">fps</span></span></div>
-          <div class="data-row"><span class="data-label">推理</span><span><span class="data-value" id="inferMs">--</span><span class="data-unit">ms</span></span></div>
-        </div>
-      </div>
     </div>
   </div>
 
